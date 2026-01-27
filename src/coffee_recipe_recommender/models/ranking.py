@@ -9,7 +9,7 @@ class LightGBMRankerModel:
                 "objective": "lambdarank",
                 "metric": "ndcg",
                 "boosting_type": "gbdt",
-                "n_estimators": 100,
+                "n_estimators": 150,
                 "learning_rate": 0.1,
                 "random_state": 42,
                 "verbosity": -1,
