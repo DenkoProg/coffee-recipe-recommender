@@ -1,7 +1,6 @@
 [project]
-name = "python-repo-template"
+name = "coffee-recipe-recommender"
 version = "0.1.0"
-description = "Description"
 readme = "README.md"
 requires-python = ">=3.11"
 
