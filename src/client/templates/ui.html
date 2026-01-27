@@ -1,0 +1,392 @@
+<!-- ui.html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Coffee Recommender UI</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body { margin: 24px; background: #fafafa; color: #111; }
+    .wrap { max-width: 1100px; margin: 0 auto; }
+    h1 { margin: 0 0 14px; font-size: 22px; }
+    .panel {
+      background: #fff; border: 1px solid #e7e7e7; border-radius: 14px;
+      padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+    label { display: block; font-size: 12px; color: #444; margin-bottom: 6px; }
+    select, input, button {
+      font-size: 14px; padding: 10px 12px; border-radius: 10px; border: 1px solid #d9d9d9;
+      background: #fff;
+    }
+    button { cursor: pointer; border: 1px solid #111; background: #111; color: #fff; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .hint { margin-top: 10px; font-size: 13px; color: #666; }
+    .grid {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+    }
+    .card {
+      background: #fff; border: 1px solid #e7e7e7; border-radius: 16px; overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+      display: flex; flex-direction: column;
+      min-height: 360px;
+    }
+    .img {
+      width: 100%; height: 160px; object-fit: cover; background: #f1f1f1;
+    }
+    .content { padding: 12px 14px 14px; display: grid; gap: 6px; }
+    .title { font-weight: 700; font-size: 16px; line-height: 1.2; }
+    .meta { font-size: 13px; color: #444; }
+    .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    .tag {
+      font-size: 12px; padding: 4px 8px; border-radius: 999px; background: #f3f3f3; border: 1px solid #e6e6e6;
+    }
+    .score {
+      margin-top: 8px; font-size: 13px; color: #111;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 10px; border-radius: 999px; border: 1px solid #e6e6e6; background: #fcfcfc;
+      width: fit-content;
+    }
+    .error { color: #b00020; font-size: 13px; margin-top: 10px; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .small { font-size: 12px; color: #666; }
+    
+    .card {
+      position: relative;
+      overflow: visible;
+    }
+
+    .img-wrap {
+      position: relative;
+    }
+
+    .img {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      display: block;
+      cursor: zoom-in;
+    }
+
+    .img-wrap::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 280px;
+      aspect-ratio: 1 / 1;
+      transform: translateX(-50%);
+      background-image: var(--img);
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      border-radius: 14px;
+      box-shadow: 0 20px 45px rgba(0,0,0,.35);
+      opacity: 0;
+      z-index: 30;
+      pointer-events: none;
+      transition: opacity .2s ease, transform .2s ease;
+    }
+
+    .img-wrap:hover::after {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-10px);
+    }
+
+
+    /* allow long ids/words to wrap inside the card */
+    .card, .content { min-width: 0; }
+
+    .title, .meta {
+      overflow-wrap: anywhere;   /* best for long ids_like_this */
+      word-break: break-word;    /* fallback */
+    }
+
+  .explain-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  /* Push question mark to right */
+  .explain-row .score {
+    margin-right: auto;
+  }
+
+  .explain-btn {
+  margin-top: 8px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0px 10px;
+  border-radius: 999px;          /* same pill shape */
+  background: #fcfcfc;
+  color: #111;
+  font-size: 13px;
+  font-weight: 600;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid #e6e6e6;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  cursor: pointer;
+  position: relative;
+}
+
+/* subtle hover */
+.explain-btn:hover {
+  background: #f3f3f3;
+}
+
+  /* Popup */
+  .explain-popup {
+    position: absolute;
+    bottom: 30px;
+    right: 0;
+    width: 260px;
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 13px;
+    color: #111;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    display: none;
+    z-index: 50;
+  }
+
+  /* Hover */
+  .explain-btn:hover .explain-popup {
+    display: block;
+  }
+
+    code { background: #f2f2f2; padding: 2px 6px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <h1>☕ Coffee Recipe Recommender</h1>
+      <div class="small">Backend: <code id="apiBaseLabel"></code></div>
+    </div>
+
+    <div class="panel">
+      <div class="row">
+        <div style="min-width: 260px; flex: 1;">
+          <label for="userSelect">User</label>
+          <select id="userSelect" disabled>
+            <option value="">Loading users…</option>
+          </select>
+        </div>
+
+        <div style="min-width: 120px;">
+          <label for="nInput">Top N</label>
+          <input id="nInput" type="number" min="1" max="50" value="5" />
+        </div>
+
+        <div>
+          <button id="recBtn" disabled>Recommend</button>
+        </div>
+      </div>
+
+      <div class="hint">
+        1) Select a user → 2) Click <b>Recommend</b> → cards will appear below.
+        <div class="small" id="timing"></div>
+      </div>
+      <div id="status" class="error" style="display:none;"></div>
+    </div>
+
+    <div id="results" class="grid"></div>
+  </div>
+
+<script>
+  // -------- CONFIG --------
+  // If FastAPI runs on same host/port with static hosting, keep it "".
+  // Otherwise set like: const API_BASE = "http://localhost:8000";
+  const API_BASE = "";
+
+  document.getElementById("apiBaseLabel").textContent = API_BASE || "(same origin)";
+
+  // -------- DOM --------
+  const userSelect = document.getElementById("userSelect");
+  const recBtn = document.getElementById("recBtn");
+  const nInput = document.getElementById("nInput");
+  const results = document.getElementById("results");
+  const statusEl = document.getElementById("status");
+  const timingEl = document.getElementById("timing");
+
+  function setStatus(msg) {
+    if (!msg) { statusEl.style.display = "none"; statusEl.textContent = ""; return; }
+    statusEl.style.display = "block";
+    statusEl.textContent = msg;
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? "").replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
+
+  function coffeeImageUrl(recipe) {
+    if (!recipe?.recipe_id) return "/images/default.png";
+    return `/images/${recipe.recipe_id}.png`;
+  }
+
+function renderCard(recipe) {
+  const tags = Array.isArray(recipe.tags) ? recipe.tags : [];
+  const equip = Array.isArray(recipe.required_equipment) ? recipe.required_equipment : [];
+
+  return `
+    <div class="card" style="--img:url('${coffeeImageUrl(recipe)}')">
+      <div class="img-wrap">
+        <img class="img" src="${coffeeImageUrl(recipe)}" />
+      </div>
+
+      <div class="content">
+        <div class="title">${escapeHtml(recipe.name || recipe.recipe_id)}</div>
+        <div class="meta"><b>Recipe ID:</b> ${escapeHtml(recipe.recipe_id)}</div>
+        ${recipe.description ? `<div class="meta">${escapeHtml(recipe.description)}</div>` : ""}
+
+        <div class="meta">
+          <b>Taste:</b>
+          bitter ${Number(recipe.taste_bitterness ?? 0).toFixed(2)},
+          sweet ${Number(recipe.taste_sweetness ?? 0).toFixed(2)},
+          acid ${Number(recipe.taste_acidity ?? 0).toFixed(2)},
+          body ${Number(recipe.taste_body ?? 0).toFixed(2)}
+        </div>
+
+        <div class="meta">
+          <b>Strength:</b> ${escapeHtml(recipe.strength)}
+          · <b>Portion:</b> ${escapeHtml(recipe.portion_size_ml)} ml
+          · <b>Time:</b> ${escapeHtml(recipe.preparation_time_minutes)} min
+        </div>
+
+        <div class="meta">
+          <b>Difficulty:</b> ${escapeHtml(recipe.difficulty)}
+        </div>
+
+        ${equip.length ? `<div class="meta"><b>Equipment:</b> ${escapeHtml(equip.join(", "))}</div>` : ""}
+
+        ${tags.length ? `<div class="tags">${tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("")}</div>` : ""}
+
+        ${recipe.score != null
+          ? `
+            <div class="explain-row">
+              <div class="score">⭐ score: ${Number(recipe.score).toFixed(4)}</div>
+
+              <div class="explain-btn">?
+                <div class="explain-popup">
+                  <b>Why this coffee?</b>
+                  <p>Explanation will appear here.</p>
+                  <small>(Later: SHAP / similarity / feature importance)</small>
+                </div>
+              </div>
+            </div>
+          `
+          : ""
+        }
+      </div>  <!-- closes .content -->
+
+    </div>    <!-- ✅ closes .card -->
+  `;
+}
+
+
+  async function fetchJson(path) {
+    const url = (API_BASE || "") + path;
+    const res = await fetch(url, { headers: { "Accept": "application/json" }});
+    if (!res.ok) {
+      let detail = "";
+      try { detail = (await res.json())?.detail ?? ""; } catch { /* ignore */ }
+      throw new Error(`HTTP ${res.status}${detail ? ": " + detail : ""}`);
+    }
+    return res.json();
+  }
+
+  // -------- Load Users on page start --------
+  async function loadUsers() {
+    setStatus("");
+    userSelect.disabled = true;
+    recBtn.disabled = true;
+    userSelect.innerHTML = `<option value="">Loading users…</option>`;
+
+    try {
+      const users = await fetchJson(`/users?limit=5000`);
+      userSelect.innerHTML = `<option value="">Select a user…</option>` + users.map(u => {
+        const label = u.username ? `${u.username} (${u.user_id})` : u.user_id;
+        return `<option value="${escapeHtml(u.user_id)}">${escapeHtml(label)}</option>`;
+      }).join("");
+      userSelect.disabled = false;
+    } catch (e) {
+      setStatus(`Failed to load users: ${e.message}`);
+      userSelect.innerHTML = `<option value="">(error)</option>`;
+    }
+  }
+
+  // -------- Recommend --------
+  async function recommend() {
+    const userId = userSelect.value;
+    const n = Math.max(1, Math.min(50, parseInt(nInput.value || "5", 10)));
+
+    results.innerHTML = "";
+    setStatus("");
+    recBtn.disabled = true;
+
+    try {
+      // Expect backend response: { user_id, recommendations: [[recipe_id, score], ...] }
+      // But you also want "all info about coffee" on the card.
+      // So this UI expects backend to return full recipe objects.
+      //
+      // Recommended backend response format:
+      // { user_id, recommendations: [{recipe_id, score, name, description, ...}, ...] }
+      //
+      const payload = await fetchJson(`/recommend/${encodeURIComponent(userId)}?n=${n}`);
+
+      if (payload.took_ms != null) {
+        timingEl.textContent = `Recommendation time: ${Number(payload.took_ms).toFixed(1)} ms`;
+      } else {
+        timingEl.textContent = "";
+      }
+
+      const recs = payload.recommendations || [];
+      if (!recs.length) {
+        setStatus("No recommendations returned.");
+        return;
+      }
+
+      // If backend returns tuples only, we can still show minimal cards.
+      // But for full info, backend should enrich each recipe.
+      const normalized = recs.map(r => {
+        if (Array.isArray(r)) return { recipe_id: r[0], score: r[1] };
+        return r;
+      });
+
+      results.innerHTML = normalized.map(renderCard).join("");
+    } catch (e) {
+      setStatus(`Failed to recommend: ${e.message}`);
+    } finally {
+      recBtn.disabled = false;
+    }
+  }
+
+  // -------- Events --------
+  userSelect.addEventListener("change", () => {
+    recBtn.disabled = !userSelect.value;
+    results.innerHTML = "";
+    setStatus("");
+    timingEl.textContent = "";
+  });
+
+  recBtn.addEventListener("click", recommend);
+
+  // boot
+  loadUsers();
+</script>
+</body>
+</html>
