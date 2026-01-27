@@ -31,14 +31,9 @@
 - 🤝 Допомога Олександру з API endpoints для data loading
 - 🤝 Передача trained retrieval model Дмитру для ranking pipeline
 
-### Deliverables
-1. **Тиждень 1**: Notebooks з EDA + готовий data pipeline
-2. **Тиждень 2**: Trained Two-Tower model (NDCG@5 > 0.30 на retrieval)
-3. **Документація**: Feature engineering pipeline, model architecture
-
 ---
 
-## 👨‍💻 Дмитро - ML Engineer & Ranking Model Owner
+## 👨‍💻 Олександр - ML Engineer & Ranking Model Owner
 
 ### Зона відповідальності
 **LightGBM Ranker + Hybrid Pipeline Integration**
@@ -75,15 +70,9 @@
   - Caching strategy (recipe embeddings, user embeddings)
   - Latency profiling (<50ms target)
 
-### Deliverables
-1. **Тиждень 2**: Trained LightGBM ranker
-2. **Тиждень 3**: Повний hybrid pipeline (NDCG@5 > 0.42)
-3. **Тиждень 4**: Optimized inference (<50ms), evaluation report
-4. **Документація**: Model performance, feature importance, optimization strategies
-
 ---
 
-## 👨‍💻 Олександр - Full-Stack Developer & API/UI Owner
+## 👨‍💻 Дмитро - Full-Stack Developer & API/UI Owner
 
 ### Зона відповідальності
 **FastAPI Backend + Streamlit Frontend + Explainability**
