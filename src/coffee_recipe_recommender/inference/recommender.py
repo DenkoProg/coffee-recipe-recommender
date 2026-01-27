@@ -8,7 +8,7 @@ import torch
 
 from coffee_recipe_recommender.models.hybrid import HybridRecommenderModel
 from coffee_recipe_recommender.models.ranking import LightGBMRankerModel
-from coffee_recipe_recommender.models.retrieval import RetrievalRecommenderModel, TwoTowerModel
+from coffee_recipe_recommender.models.retrieval import ColdStartEncoder, RetrievalRecommenderModel, TwoTowerModel
 
 
 class Recommender:
@@ -34,26 +34,28 @@ class Recommender:
     def recommend(
         self,
         user_id: str,
+        users_df: pd.DataFrame,
+        recipes_df: pd.DataFrame,
+        train_df: pd.DataFrame,
         n: int = 5,
-        exclude_recipes: set[str] | None = None,
     ) -> list[tuple[str, float]]:
         """
-        Generate top-N recommendations.
+        Generate top-N recipe recommendations for a user.
 
         Args:
-            user_id: User identifier
-            n: Number of recommendations
-            exclude_recipes: Optional recipes to exclude
+            user_id: Target user identifier
+            users_df: Users dataframe (users.csv loaded)
+            recipes_df: Recipes dataframe (recipes.csv loaded)
+            train_df: Training interactions (interactions_train.csv loaded)
+            n: Number of recommendations to return
 
         Returns:
-            List of (recipe_id, score) tuples
+            List of (recipe_id, score) tuples, sorted by score descending.
         """
-        if hasattr(self.model, "predict"):
-            return self.model.predict(user_id, n, exclude_recipes)
-        elif hasattr(self.model, "recommend"):
-            return self.model.recommend(user_id, n, exclude_recipes)
+        if hasattr(self.model, "recommend"):
+            return self.model.recommend(user_id, users_df, recipes_df, train_df, n)
         else:
-            raise AttributeError("Model must have either 'predict' or 'recommend' method")
+            raise AttributeError("Model must have 'recommend' method")
 
     def recommend_batch(
         self,
@@ -75,6 +77,7 @@ class Recommender:
         checkpoint_path: Path,
         embeddings_path: Path,
         users_df: pd.DataFrame | None = None,
+        cold_start_path: Path | None = None,
         device: str = "cpu",
     ) -> "Recommender":
         """Load retrieval-only recommender from checkpoint."""
@@ -106,6 +109,15 @@ class Recommender:
             device=device,
         )
 
+        # Optionally load cold-start encoder and attach to retrieval wrapper
+        if cold_start_path is not None:
+            cs_ckpt = torch.load(cold_start_path, map_location=device)
+            feature_dim = cs_ckpt.get("feature_dim", 4)
+            encoder = ColdStartEncoder(feature_dim=feature_dim, embedding_dim=model.embedding_dim)
+            encoder.load_state_dict(cs_ckpt["state_dict"])
+            encoder.to(device).eval()
+            retrieval_model.cold_start_encoder = encoder
+
         return cls(model=retrieval_model)
 
     @classmethod
@@ -118,6 +130,7 @@ class Recommender:
         recipes_df: pd.DataFrame,
         candidate_size: int = 50,
         device: str = "cpu",
+        cold_start_path: Path | None = None,
     ) -> "Recommender":
         """Load hybrid recommender from retrieval + ranking checkpoints."""
         with torch.serialization.safe_globals([pathlib.PosixPath]):
@@ -141,6 +154,15 @@ class Recommender:
 
         recipe_embeddings = np.load(embeddings_path)
 
+        # Optionally load cold-start encoder
+        cs_encoder = None
+        if cold_start_path is not None:
+            cs_ckpt = torch.load(cold_start_path, map_location=device)
+            feature_dim = cs_ckpt.get("feature_dim", 4)
+            cs_encoder = ColdStartEncoder(feature_dim=feature_dim, embedding_dim=retrieval_model.embedding_dim)
+            cs_encoder.load_state_dict(cs_ckpt["state_dict"])
+            cs_encoder.to(device).eval()
+
         hybrid = HybridRecommenderModel(
             retrieval_model=retrieval_model,
             ranking_model=ranking_model,
@@ -152,6 +174,7 @@ class Recommender:
             recipes_df=recipes_df,
             candidate_size=candidate_size,
             device=device,
+            cold_start_encoder=cs_encoder,
         )
 
         return cls(model=hybrid)

@@ -15,26 +15,27 @@ format: ## Format code and fix linting issues
 	uv run ruff check --fix --unsafe-fixes
 
 .PHONY: eval-retrieval
-eval-retrieval: ## Evaluate retrieval model on validation set
+eval-retrieval: ## Evaluate retrieval model on validation set (warm users)
 	uv run python src/scripts/evaluate_retrieval.py \
-		--checkpoint runs/retrieval/baseline/retrieval_final.pt \
-		--embeddings runs/retrieval/baseline/recipe_embeddings.npy \
+		--checkpoint runs/retrieval/baseline_with_features/retrieval_final.pt \
+		--embeddings runs/retrieval/baseline_with_features/recipe_embeddings.npy \
 		--mode retrieval \
 		--eval-split val
 
 .PHONY: eval-retrieval-cold
 eval-retrieval-cold: ## Evaluate retrieval model on cold-start users
 	uv run python src/scripts/evaluate_retrieval.py \
-		--checkpoint runs/retrieval/baseline/retrieval_final.pt \
-		--embeddings runs/retrieval/baseline/recipe_embeddings.npy \
+		--checkpoint runs/retrieval/baseline_with_features/retrieval_final.pt \
+		--cold-start-path runs/retrieval/cold_encoder_baseline/cold_encoder.pt \
+		--embeddings runs/retrieval/baseline_with_features/recipe_embeddings.npy \
 		--mode retrieval \
 		--eval-split val_cold
 
 .PHONY: eval-hybrid
-eval-hybrid: ## Evaluate hybrid model on validation set
+eval-hybrid: ## Evaluate hybrid model on validation set (warm users)
 	uv run python src/scripts/evaluate_retrieval.py \
-		--checkpoint runs/retrieval/baseline/retrieval_final.pt \
-		--embeddings runs/retrieval/baseline/recipe_embeddings.npy \
+		--checkpoint runs/retrieval/baseline_with_features/retrieval_final.pt \
+		--embeddings runs/retrieval/baseline_with_features/recipe_embeddings.npy \
 		--ranker-model runs/ranking/improved-features/ranker.pkl \
 		--mode hybrid \
 		--eval-split val
@@ -42,8 +43,9 @@ eval-hybrid: ## Evaluate hybrid model on validation set
 .PHONY: eval-hybrid-cold
 eval-hybrid-cold: ## Evaluate hybrid model on cold-start users
 	uv run python src/scripts/evaluate_retrieval.py \
-		--checkpoint runs/retrieval/baseline/retrieval_final.pt \
-		--embeddings runs/retrieval/baseline/recipe_embeddings.npy \
+		--checkpoint runs/retrieval/baseline_with_features/retrieval_final.pt \
+		--embeddings runs/retrieval/baseline_with_features/recipe_embeddings.npy \
+		--cold-start-path runs/retrieval/cold_encoder_baseline/cold_encoder.pt \
 		--ranker-model runs/ranking/improved-features/ranker.pkl \
 		--mode hybrid \
 		--eval-split val_cold

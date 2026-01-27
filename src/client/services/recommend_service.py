@@ -31,35 +31,45 @@ class RecommendOut(BaseModel):
     took_ms: float
 
 
-def recommend(user_id: str, n: int) -> list[tuple[str, float]]:
-    RECIPES_CSV_PATH = Path("data/recipes.csv")
-    if n <= 0:
-        return []
+def recommend(user_id: str, n: int = 5) -> list[tuple[str, float]]:
+    """Generate top-N recipe recommendations for a user.
 
-    if not RECIPES_CSV_PATH.exists():
-        raise FileNotFoundError(f"{RECIPES_CSV_PATH} not found")
+    Args:
+        user_id: Target user identifier
+        n: Number of recommendations to return
 
-    recipe_ids: list[str] = []
+    Returns:
+        List of (recipe_id, score) tuples, sorted by score descending.
+    """
+    import pandas as pd
 
-    with RECIPES_CSV_PATH.open("r", newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
+    from coffee_recipe_recommender.inference.recommender import Recommender
 
-        if not reader.fieldnames or "recipe_id" not in reader.fieldnames:
-            raise ValueError("recipes.csv must contain a 'recipe_id' column")
+    # Load dataframes
+    users_df = pd.read_csv("data/users.csv")
+    recipes_df = pd.read_csv("data/recipes.csv")
+    train_df = pd.read_csv("data/interactions_train.csv")
 
-        for row in reader:
-            rid = (row.get("recipe_id") or "").strip()
-            if rid:
-                recipe_ids.append(rid)
+    # Load model (hybrid by default)
+    recommender = Recommender.from_hybrid_checkpoints(
+        retrieval_checkpoint_path=Path("runs/retrieval/baseline_with_features/retrieval_final.pt"),
+        ranker_model_path=Path("runs/ranking/improved-features/ranker.pkl"),
+        embeddings_path=Path("runs/retrieval/baseline_with_features/recipe_embeddings.npy"),
+        users_df=users_df,
+        recipes_df=recipes_df,
+        cold_start_path=Path("runs/retrieval/cold_encoder_baseline/cold_encoder.pt"),
+    )
 
-    if not recipe_ids:
-        return []
+    # Generate recommendations
+    recommendations = recommender.recommend(
+        user_id=user_id,
+        users_df=users_df,
+        recipes_df=recipes_df,
+        train_df=train_df,
+        n=n,
+    )
 
-    k = min(n, len(recipe_ids))
-    sampled = random.sample(recipe_ids, k=k)
-
-    # score is always 0.0 for now
-    return [(rid, 0.0) for rid in sampled]
+    return recommendations[:n] if recommendations else []
 
 
 def get_info(recs: list[tuple[str, float]] | list[dict]) -> list[dict]:
