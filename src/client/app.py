@@ -44,7 +44,9 @@ def get_recommendations(user_id: str, n: int = Query(5, ge=1, le=50)):
     t0 = time.perf_counter()
 
     try:
-        recs = get_info(recommender.recommend(user_id, n=n))
+        # Load training interactions (used for feature generation / context)
+        train_df = load_interactions(Path("data") / "interactions_train_split.csv")
+        recs = get_info(recommender.recommend(user_id, users_df, recipes_df, train_df, n=n))
     except KeyError:
         raise HTTPException(status_code=404, detail="user_id not found")
     except ValueError as e:

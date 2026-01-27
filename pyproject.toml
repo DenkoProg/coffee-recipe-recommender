@@ -21,6 +21,7 @@ dependencies = [
     "uvicorn>=0.40.0",
     "optuna>=4.7.0",
     "shap>=0.49.1",
+    "joblib>=1.5.3",
 ]
 
 [dependency-groups]

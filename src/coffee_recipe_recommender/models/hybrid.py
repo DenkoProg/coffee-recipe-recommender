@@ -1,3 +1,5 @@
+from typing import Any
+
 import numpy as np
 import pandas as pd
 import torch
@@ -27,6 +29,7 @@ class HybridRecommenderModel:
         recipes_df: pd.DataFrame,
         candidate_size: int = 100,
         device: str = "cpu",
+        cold_start_encoder: Any = None,
     ):
         """
         Initialize hybrid model.
@@ -55,6 +58,40 @@ class HybridRecommenderModel:
         self.device = device
         self.use_features = retrieval_model.user_tower.use_features
         self.feature_engineer = FeatureEngineer()
+        self.cold_start_encoder = cold_start_encoder.to(device) if cold_start_encoder is not None else None
+
+    def _get_equipment_compatible_recipes(self, user_id: str) -> set[int]:
+        """Get set of recipe indices compatible with user's owned equipment.
+
+        Args:
+            user_id: User identifier
+
+        Returns:
+            Set of recipe indices that have required_equipment as subset of user's owned_equipment.
+            If no equipment constraint, returns all indices.
+        """
+        if self.users_df is None:
+            return set(range(len(self.idx_to_recipe)))
+
+        user_rows = self.users_df[self.users_df["user_id"] == user_id]
+        if user_rows.empty:
+            return set(range(len(self.idx_to_recipe)))
+
+        user_equipment = set(user_rows.iloc[0].get("owned_equipment") or [])
+        if not user_equipment or self.recipes_df is None:
+            return set(range(len(self.idx_to_recipe)))  # No equipment constraint
+
+        compatible_indices = set()
+        for idx, recipe_id in self.idx_to_recipe.items():
+            recipe_rows = self.recipes_df[self.recipes_df["recipe_id"] == recipe_id]
+            if not recipe_rows.empty:
+                required_eq = set(recipe_rows.iloc[0].get("required_equipment") or [])
+                if required_eq.issubset(user_equipment):
+                    compatible_indices.add(idx)
+            else:
+                compatible_indices.add(idx)  # Unknown recipe - include by default
+
+        return compatible_indices if compatible_indices else set(range(len(self.idx_to_recipe)))
 
     @torch.no_grad()
     def get_candidates(
@@ -74,30 +111,55 @@ class HybridRecommenderModel:
         Returns:
             List of candidate recipe IDs
         """
-        if user_id not in self.user_to_idx:
-            raise ValueError(f"Unknown user_id: {user_id}")
+        # Support cold-start users via optional `cold_start_encoder`.
+        if user_id in self.user_to_idx:
+            user_idx = self.user_to_idx[user_id]
+            user_tensor = torch.tensor([user_idx], dtype=torch.long, device=self.device)
 
-        user_idx = self.user_to_idx[user_id]
-        user_tensor = torch.tensor([user_idx], dtype=torch.long, device=self.device)
+            user_features = None
+            if self.use_features:
+                user_row = self.users_df[self.users_df["user_id"] == user_id].iloc[0]
+                user_features = torch.tensor(
+                    [
+                        [
+                            user_row["taste_pref_bitterness"],
+                            user_row["taste_pref_sweetness"],
+                            user_row["taste_pref_acidity"],
+                            user_row["taste_pref_body"],
+                        ]
+                    ],
+                    dtype=torch.float32,
+                    device=self.device,
+                )
 
-        user_features = None
-        if self.use_features:
-            user_row = self.users_df[self.users_df["user_id"] == user_id].iloc[0]
-            user_features = torch.tensor(
+            user_emb = self.retrieval_model.get_user_embeddings(user_tensor, user_features)
+        else:
+            if self.cold_start_encoder is None or self.users_df is None:
+                raise ValueError(f"Unknown user_id: {user_id}")
+            user_row = self.users_df[self.users_df["user_id"] == user_id]
+            if user_row.empty:
+                raise ValueError(f"Unknown user_id: {user_id}")
+            user_row = user_row.iloc[0]
+            cs_feat = torch.tensor(
                 [
                     [
-                        user_row["taste_pref_bitterness"],
-                        user_row["taste_pref_sweetness"],
-                        user_row["taste_pref_acidity"],
-                        user_row["taste_pref_body"],
+                        user_row.get("taste_pref_bitterness", 0.5),
+                        user_row.get("taste_pref_sweetness", 0.5),
+                        user_row.get("taste_pref_acidity", 0.5),
+                        user_row.get("taste_pref_body", 0.5),
                     ]
                 ],
                 dtype=torch.float32,
                 device=self.device,
             )
-
-        user_emb = self.retrieval_model.get_user_embeddings(user_tensor, user_features)
+            user_emb = self.cold_start_encoder(cs_feat)
         similarities = torch.matmul(user_emb, self.recipe_embeddings.T).squeeze(0)
+
+        # Apply hard equipment filtering
+        compatible = self._get_equipment_compatible_recipes(user_id)
+        for idx in range(len(similarities)):
+            if idx not in compatible:
+                similarities[idx] = -float("inf")
 
         if exclude_recipes:
             exclude_indices = [self.recipe_to_idx[rid] for rid in exclude_recipes if rid in self.recipe_to_idx]
@@ -214,25 +276,29 @@ class HybridRecommenderModel:
         ranked = sorted(zip(candidates, scores, strict=True), key=lambda x: x[1], reverse=True)
         return ranked
 
-    def predict(
+    def recommend(
         self,
         user_id: str,
+        users_df: pd.DataFrame,
+        recipes_df: pd.DataFrame,
+        train_df: pd.DataFrame,
         n: int = 5,
-        exclude_recipes: set[str] | None = None,
     ) -> list[tuple[str, float]]:
         """
-        Full two-stage prediction: retrieval → ranking.
+        Full two-stage recommendation: retrieval → ranking.
 
         Args:
-            user_id: User identifier
-            n: Number of final recommendations
-            exclude_recipes: Optional recipes to exclude
+            user_id: Target user identifier
+            users_df: Users dataframe (users.csv loaded)
+            recipes_df: Recipes dataframe (recipes.csv loaded)
+            train_df: Training interactions (interactions_train.csv loaded)
+            n: Number of recommendations to return
 
         Returns:
-            List of (recipe_id, score) tuples
+            List of (recipe_id, score) tuples, sorted by score descending.
         """
         # Stage 1: Retrieve candidates
-        candidates = self.get_candidates(user_id, k=self.candidate_size, exclude_recipes=exclude_recipes)
+        candidates = self.get_candidates(user_id, k=self.candidate_size)
 
         if not candidates:
             return []

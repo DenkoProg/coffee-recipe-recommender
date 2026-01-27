@@ -13,6 +13,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Evaluate retrieval model performance.")
 
     parser.add_argument("--checkpoint", type=Path, required=True, help="Path to model checkpoint")
+    parser.add_argument("--cold-start-path", type=Path, help="Path to cold-start encoder checkpoint")
     parser.add_argument("--embeddings", type=Path, required=True, help="Path to recipe embeddings .npy file")
     parser.add_argument("--data-dir", type=Path, default=Path("data"), help="Directory containing CSV files")
     parser.add_argument(
@@ -73,9 +74,15 @@ def main() -> None:
     recipes_df = load_recipes(args.data_dir / "recipes.csv")
 
     # Load evaluation split
-    eval_file = f"interactions_{args.eval_split}.csv"
+    if args.eval_split == "val":
+        eval_file = "interactions_val.csv"
+    elif args.eval_split == "val_cold":
+        eval_file = "interactions_val_cold.csv"
+
     eval_df = load_interactions(args.data_dir / eval_file)
 
+    # Load training split for train_df parameter (never on validation data for leakage)
+    train_df = load_interactions(args.data_dir / "interactions_train_split.csv")
     print(f"\nEvaluation split: {args.eval_split}")
     print(f"  Users: {eval_df['user_id'].nunique()}")
     print(f"  Interactions: {len(eval_df)}")
@@ -87,9 +94,12 @@ def main() -> None:
 
     # Load recommender
     print(f"\nLoading {args.mode} recommender from {args.checkpoint}...")
+    if args.cold_start_path:
+        print(f"  with cold-start encoder from {args.cold_start_path}...")
     if args.mode == "retrieval":
         recommender = Recommender.from_retrieval_checkpoint(
             checkpoint_path=args.checkpoint,
+            cold_start_path=args.cold_start_path,
             embeddings_path=args.embeddings,
             users_df=users_df,
             device=args.device,
@@ -100,6 +110,7 @@ def main() -> None:
         recommender = Recommender.from_hybrid_checkpoints(
             retrieval_checkpoint_path=args.checkpoint,
             ranker_model_path=args.ranker_model,
+            cold_start_path=args.cold_start_path,
             embeddings_path=args.embeddings,
             users_df=users_df,
             recipes_df=recipes_df,
@@ -113,7 +124,7 @@ def main() -> None:
     recommendations_dict = {}
     for user_id in user_ids:
         try:
-            recs = recommender.recommend(user_id, n=args.k)
+            recs = recommender.recommend(user_id, users_df, recipes_df, train_df, n=args.k)
             recommendations_dict[user_id] = [recipe_id for recipe_id, _ in recs]
         except ValueError:
             # Unknown user (cold-start case not in training)
