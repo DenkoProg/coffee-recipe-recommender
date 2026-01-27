@@ -74,12 +74,15 @@ def main() -> None:
     recipes_df = load_recipes(args.data_dir / "recipes.csv")
 
     # Load evaluation split
-    eval_file = f"interactions_{args.eval_split}.csv"
+    if args.eval_split == "val":
+        eval_file = "interactions_val.csv"
+    elif args.eval_split == "val_cold":
+        eval_file = "interactions_val_cold.csv"
+
     eval_df = load_interactions(args.data_dir / eval_file)
 
-    # Load training split for train_df parameter
-    train_df = load_interactions(args.data_dir / "interactions_train.csv")
-
+    # Load training split for train_df parameter (never on validation data for leakage)
+    train_df = load_interactions(args.data_dir / "interactions_train_split.csv")
     print(f"\nEvaluation split: {args.eval_split}")
     print(f"  Users: {eval_df['user_id'].nunique()}")
     print(f"  Interactions: {len(eval_df)}")

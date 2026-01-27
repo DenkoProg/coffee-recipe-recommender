@@ -48,7 +48,7 @@ def recommend(user_id: str, n: int = 5) -> list[tuple[str, float]]:
     # Load dataframes
     users_df = pd.read_csv("data/users.csv")
     recipes_df = pd.read_csv("data/recipes.csv")
-    train_df = pd.read_csv("data/interactions_train.csv")
+    train_df = pd.read_csv("data/interactions_train_split.csv")
 
     # Load model (hybrid by default)
     recommender = Recommender.from_hybrid_checkpoints(
