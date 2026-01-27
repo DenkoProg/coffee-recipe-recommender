@@ -1,14 +1,16 @@
-from typing import List
-from pydantic import BaseModel
-from pathlib import Path
-
 import csv
+from pathlib import Path
+from typing import List
+
+from pydantic import BaseModel
+
 
 class UserOut(BaseModel):
     user_id: str
     username: str | None = None
 
-def list_users(limit: int) -> List[UserOut]:
+
+def list_users(limit: int) -> list[UserOut]:
     USERS_CSV_PATH = Path("data/users.csv")
     if limit <= 0:
         return []
@@ -16,7 +18,7 @@ def list_users(limit: int) -> List[UserOut]:
     if not USERS_CSV_PATH.exists():
         raise FileNotFoundError(f"{USERS_CSV_PATH} not found")
 
-    users: List[UserOut] = []
+    users: list[UserOut] = []
 
     with USERS_CSV_PATH.open("r", newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)

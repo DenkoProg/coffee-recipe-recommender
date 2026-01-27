@@ -35,7 +35,7 @@ eval-hybrid: ## Evaluate hybrid model on validation set
 	uv run python src/scripts/evaluate_retrieval.py \
 		--checkpoint runs/retrieval/baseline/retrieval_final.pt \
 		--embeddings runs/retrieval/baseline/recipe_embeddings.npy \
-		--ranker-model runs/ranking/baseline/ranker.pkl \
+		--ranker-model runs/ranking/improved-features/ranker.pkl \
 		--mode hybrid \
 		--eval-split val
 
@@ -44,7 +44,7 @@ eval-hybrid-cold: ## Evaluate hybrid model on cold-start users
 	uv run python src/scripts/evaluate_retrieval.py \
 		--checkpoint runs/retrieval/baseline/retrieval_final.pt \
 		--embeddings runs/retrieval/baseline/recipe_embeddings.npy \
-		--ranker-model runs/ranking/baseline/ranker.pkl \
+		--ranker-model runs/ranking/improved-features/ranker.pkl \
 		--mode hybrid \
 		--eval-split val_cold
 

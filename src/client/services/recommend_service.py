@@ -1,35 +1,37 @@
-from typing import List, Tuple, Dict, Any, Optional
-from pydantic import BaseModel
-from pathlib import Path
-import json
-import re
-import random
 import csv
+import json
+from pathlib import Path
+import random
+import re
+from typing import Any, Dict, List, Optional, Tuple
+
+from pydantic import BaseModel
+
 
 class RecipeOut(BaseModel):
     recipe_id: str
-    score: Optional[float] = None
-    name: Optional[str] = None
-    description: Optional[str] = None
-    taste_bitterness: Optional[float] = None
-    taste_sweetness: Optional[float] = None
-    taste_acidity: Optional[float] = None
-    taste_body: Optional[float] = None
-    strength: Optional[str] = None
-    portion_size_ml: Optional[str] = None
-    preparation_time_minutes: Optional[str] = None
-    difficulty: Optional[str] = None
-    required_equipment: List[str] = []
-    tags: List[str] = []
+    score: float | None = None
+    name: str | None = None
+    description: str | None = None
+    taste_bitterness: float | None = None
+    taste_sweetness: float | None = None
+    taste_acidity: float | None = None
+    taste_body: float | None = None
+    strength: str | None = None
+    portion_size_ml: str | None = None
+    preparation_time_minutes: str | None = None
+    difficulty: str | None = None
+    required_equipment: list[str] = []
+    tags: list[str] = []
 
 
 class RecommendOut(BaseModel):
     user_id: str
-    recommendations: List[RecipeOut]
+    recommendations: list[RecipeOut]
     took_ms: float
 
 
-def recommend(user_id: str, n: int) -> List[Tuple[str, float]]:
+def recommend(user_id: str, n: int) -> list[tuple[str, float]]:
     RECIPES_CSV_PATH = Path("data/recipes.csv")
     if n <= 0:
         return []
@@ -37,7 +39,7 @@ def recommend(user_id: str, n: int) -> List[Tuple[str, float]]:
     if not RECIPES_CSV_PATH.exists():
         raise FileNotFoundError(f"{RECIPES_CSV_PATH} not found")
 
-    recipe_ids: List[str] = []
+    recipe_ids: list[str] = []
 
     with RECIPES_CSV_PATH.open("r", newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -59,7 +61,8 @@ def recommend(user_id: str, n: int) -> List[Tuple[str, float]]:
     # score is always 0.0 for now
     return [(rid, 0.0) for rid in sampled]
 
-def get_info(recs: List[Tuple[str, float]] | List[dict]) -> List[dict]:
+
+def get_info(recs: list[tuple[str, float]] | list[dict]) -> list[dict]:
     """
     Enrich a list of recommendations with recipe metadata from `data/recipes.csv`.
 
@@ -76,7 +79,7 @@ def get_info(recs: List[Tuple[str, float]] | List[dict]) -> List[dict]:
         raise FileNotFoundError(f"{RECIPES_CSV_PATH} not found")
 
     # Load recipes into a lookup by recipe_id
-    recipes: Dict[str, Dict[str, str]] = {}
+    recipes: dict[str, dict[str, str]] = {}
     with RECIPES_CSV_PATH.open("r", newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         if not reader.fieldnames or "recipe_id" not in reader.fieldnames:
@@ -87,7 +90,7 @@ def get_info(recs: List[Tuple[str, float]] | List[dict]) -> List[dict]:
                 continue
             recipes[rid] = row
 
-    def parse_list_field(value: Any) -> List[str]:
+    def parse_list_field(value: Any) -> list[str]:
         if value is None:
             return []
         s = str(value).strip()
@@ -113,7 +116,7 @@ def get_info(recs: List[Tuple[str, float]] | List[dict]) -> List[dict]:
         except Exception:
             return None
 
-    out: List[dict] = []
+    out: list[dict] = []
     for r in recs:
         if isinstance(r, (list, tuple)):
             recipe_id = str(r[0]) if len(r) > 0 else ""
@@ -125,7 +128,7 @@ def get_info(recs: List[Tuple[str, float]] | List[dict]) -> List[dict]:
             # unsupported entry, skip
             continue
 
-        entry: Dict[str, Any] = {"recipe_id": recipe_id, "score": score}
+        entry: dict[str, Any] = {"recipe_id": recipe_id, "score": score}
 
         row = recipes.get(recipe_id)
         if not row:
@@ -145,7 +148,9 @@ def get_info(recs: List[Tuple[str, float]] | List[dict]) -> List[dict]:
         # Other presentational fields
         entry["strength"] = (row.get("strength") or "").strip() or None
         entry["portion_size_ml"] = (row.get("portion_size_ml") or row.get("portion") or "").strip() or None
-        entry["preparation_time_minutes"] = (row.get("preparation_time_minutes") or row.get("prep_time_minutes") or "").strip() or None
+        entry["preparation_time_minutes"] = (
+            row.get("preparation_time_minutes") or row.get("prep_time_minutes") or ""
+        ).strip() or None
         entry["difficulty"] = (row.get("difficulty") or "").strip() or None
 
         # Lists: equipment and tags
