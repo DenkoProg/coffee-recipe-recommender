@@ -9,6 +9,9 @@ import time
 from src.client.services.users_service import list_users, UserOut
 from src.client.services.recommend_service import recommend, RecommendOut, get_info
 
+from src.coffee_recipe_recommender.inference.recommender import Recommender
+from coffee_recipe_recommender.training.loaders import load_interactions, load_recipes, load_users
+
 app = FastAPI(title="Coffee Recommender API", version="1.0")
 app.mount("/images", StaticFiles(directory="data/images"), name="images")
 
@@ -26,10 +29,21 @@ def get_recommendations(user_id: str, n: int = Query(5, ge=1, le=50)):
     """
     Returns top-N recommendations for a given user.
     """
+    users_df = load_users(Path("data") / "users.csv")
+    recipes_df = load_recipes(Path("data") / "recipes.csv")
+    recommender = Recommender.from_hybrid_checkpoints(
+        retrieval_checkpoint_path='runs/retrieval/baseline/retrieval_final.pt',
+        ranker_model_path='runs/ranking/baseline/ranker.pkl',
+        embeddings_path='runs/retrieval/baseline/recipe_embeddings.npy',
+        users_df=users_df,
+        recipes_df=recipes_df,
+        device="cpu",
+    )
+
     t0 = time.perf_counter()
 
     try:
-        recs = get_info(recommend(user_id=user_id, n=n))
+        recs = get_info(recommender.recommend(user_id, n=n))
     except KeyError:
         raise HTTPException(status_code=404, detail="user_id not found")
     except ValueError as e:
