@@ -16,6 +16,7 @@ dependencies = [
     "onnx>=1.14.0",
     "onnxruntime>=1.15.0",
     "tqdm>=4.65.0",
+    "lightgbm>=4.6.0",
 ]
 
 [dependency-groups]

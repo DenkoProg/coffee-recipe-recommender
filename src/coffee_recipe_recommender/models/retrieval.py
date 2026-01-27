@@ -1,3 +1,5 @@
+import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -302,3 +304,71 @@ class TwoTowerModel(nn.Module):
     ) -> torch.Tensor:
         """Get embeddings for recipes only."""
         return self.recipe_tower(recipe_idx, recipe_features)
+
+
+class RetrievalRecommenderModel:
+    """Internal wrapper for retrieval-only inference."""
+
+    def __init__(
+        self,
+        model: TwoTowerModel,
+        recipe_embeddings: np.ndarray,
+        user_to_idx: dict[str, int],
+        recipe_to_idx: dict[str, int],
+        idx_to_recipe: dict[int, str],
+        users_df: pd.DataFrame | None,
+        device: str,
+    ):
+        self.model = model.to(device)
+        self.model.eval()
+        self.recipe_embeddings = torch.from_numpy(recipe_embeddings).float().to(device)
+        self.user_to_idx = user_to_idx
+        self.recipe_to_idx = recipe_to_idx
+        self.idx_to_recipe = idx_to_recipe
+        self.users_df = users_df
+        self.device = device
+        self.use_features = model.user_tower.use_features
+
+    @torch.no_grad()
+    def predict(
+        self,
+        user_id: str,
+        n: int = 5,
+        exclude_recipes: set[str] | None = None,
+    ) -> list[tuple[str, float]]:
+        """Generate top-N recommendations using cosine similarity."""
+        if user_id not in self.user_to_idx:
+            raise ValueError(f"Unknown user_id: {user_id}")
+
+        user_idx = self.user_to_idx[user_id]
+        user_tensor = torch.tensor([user_idx], dtype=torch.long, device=self.device)
+
+        user_features = None
+        if self.use_features and self.users_df is not None:
+            user_row = self.users_df[self.users_df["user_id"] == user_id].iloc[0]
+            user_features = torch.tensor(
+                [
+                    [
+                        user_row["taste_pref_bitterness"],
+                        user_row["taste_pref_sweetness"],
+                        user_row["taste_pref_acidity"],
+                        user_row["taste_pref_body"],
+                    ]
+                ],
+                dtype=torch.float32,
+                device=self.device,
+            )
+
+        user_emb = self.model.get_user_embeddings(user_tensor, user_features)
+        similarities = torch.matmul(user_emb, self.recipe_embeddings.T).squeeze(0)
+
+        if exclude_recipes:
+            exclude_indices = [self.recipe_to_idx[rid] for rid in exclude_recipes if rid in self.recipe_to_idx]
+            if exclude_indices:
+                similarities[exclude_indices] = -float("inf")
+
+        top_scores, top_indices = torch.topk(similarities, k=min(n, len(similarities)))
+
+        return [
+            (self.idx_to_recipe[idx.item()], score.item()) for idx, score in zip(top_indices, top_scores, strict=True)
+        ]
