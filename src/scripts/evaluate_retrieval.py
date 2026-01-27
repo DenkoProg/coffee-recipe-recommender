@@ -5,7 +5,7 @@ import pandas as pd
 import torch
 
 from coffee_recipe_recommender.evaluation.metrics import evaluate_recommendations
-from coffee_recipe_recommender.inference.recommender import RetrievalRecommender
+from coffee_recipe_recommender.inference.recommender import Recommender
 from coffee_recipe_recommender.training.loaders import load_interactions, load_recipes, load_users
 
 
@@ -15,6 +15,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--checkpoint", type=Path, required=True, help="Path to model checkpoint")
     parser.add_argument("--embeddings", type=Path, required=True, help="Path to recipe embeddings .npy file")
     parser.add_argument("--data-dir", type=Path, default=Path("data"), help="Directory containing CSV files")
+    parser.add_argument(
+        "--mode", type=str, choices=["retrieval", "hybrid"], default="retrieval", help="Recommender mode"
+    )
+    parser.add_argument("--ranker-model", type=Path, help="Path to ranker model (required for hybrid mode)")
     parser.add_argument(
         "--eval-split", type=str, choices=["val", "val_cold"], default="val", help="Evaluation split to use"
     )
@@ -82,13 +86,25 @@ def main() -> None:
     print(f"  Users with positive interactions: {len(ground_truth)}")
 
     # Load recommender
-    print(f"\nLoading recommender from {args.checkpoint}...")
-    recommender = RetrievalRecommender.from_checkpoint(
-        checkpoint_path=args.checkpoint,
-        embeddings_path=args.embeddings,
-        users_df=users_df,
-        device=args.device,
-    )
+    print(f"\nLoading {args.mode} recommender from {args.checkpoint}...")
+    if args.mode == "retrieval":
+        recommender = Recommender.from_retrieval_checkpoint(
+            checkpoint_path=args.checkpoint,
+            embeddings_path=args.embeddings,
+            users_df=users_df,
+            device=args.device,
+        )
+    else:  # hybrid
+        if not args.ranker_model:
+            raise ValueError("--ranker-model is required for hybrid mode")
+        recommender = Recommender.from_hybrid_checkpoints(
+            retrieval_checkpoint_path=args.checkpoint,
+            ranker_model_path=args.ranker_model,
+            embeddings_path=args.embeddings,
+            users_df=users_df,
+            recipes_df=recipes_df,
+            device=args.device,
+        )
 
     # Generate recommendations
     print(f"\nGenerating top-{args.k} recommendations for each user...")
