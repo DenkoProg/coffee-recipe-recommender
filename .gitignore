@@ -209,3 +209,5 @@ __marimo__/
 # Other directories to ignore
 data/
 !src/
+
+runs/
