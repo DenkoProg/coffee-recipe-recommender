@@ -4,171 +4,325 @@
 ## 👨‍💻 Денис - Data Engineer & Retrieval Model Owner
 
 ### Зона відповідальності
-**Data Pipeline + Two-Tower Retrieval Model**
+**Data Pipeline + Two-Tower Retrieval Model + Vector DB**
 
-### Основні завдання
+### ✅ Завершені завдання (MVP)
 
-#### Milestone 1: Data Pipeline
-- ✅ **Phase 0**: Налаштування проєкту, EDA notebook
-  - Аналіз даних, візуалізація, статистика
-  - Документація insights
+#### Milestone 1: Data Pipeline ✅
+- ✅ **Phase 0**: Налаштування проєкту, EDA
+  - Проєкт структура, dependencies (pyproject.toml)
+  - Notebooks для аналізу embeddings
+  - Chroma exploration
 - ✅ **Phase 1**: Data Pipeline
-  - `src/coffee_recipe_recommender/data/loaders.py` - завантаження CSV
-  - `src/coffee_recipe_recommender/data/preprocessing.py` - feature engineering (50+ ознак!)
-  - `src/coffee_recipe_recommender/data/dataset.py` - PyTorch datasets
-  - Negative sampling стратегія
+  - `training/loaders.py` - CSV loading, ID mappings ✅
+  - `preprocessing/preprocessing.py` - 50+ features ✅
+  - `training/datasets.py` - PyTorch datasets (Retrieval, RetrievalWithFeatures) ✅
+  - Negative sampling (in-batch, random candidates) ✅
 
-#### Milestone 2: Retrieval Model
+#### Milestone 2: Retrieval Model ✅
 - ✅ **Phase 2**: Two-Tower Neural Model
-  - `src/coffee_recipe_recommender/models/retrieval.py` - User Tower + Recipe Tower
-  - `src/coffee_recipe_recommender/models/layers.py` - MLP layers з dropout/batchnorm
-  - `src/coffee_recipe_recommender/training/losses.py` - InfoNCE contrastive loss
-  - Cold-start encoder для нових юзерів
-- ✅ `scripts/train_retrieval.py` - тренування Two-Tower
-- ✅ Збереження моделі для передачі Дмитру
+  - `models/retrieval.py` - UserTower + RecipeTower ✅
+  - InfoNCE + Symmetric InfoNCE losses (`training/losses.py`) ✅
+  - Multiple training runs (baseline, with features) ✅
+  - Recipe embeddings pre-computation ✅
+- ✅ `scripts/train_retrieval.py` - повний training pipeline ✅
+- ✅ `scripts/evaluate_retrieval.py` - метрики (NDCG, HR, MRR) ✅
+- ✅ `db/chroma_store.py` - Chroma wrapper ✅
+- ✅ `scripts/init_chroma.py` - Chroma initialization ✅
 
-#### Інтеграційні завдання (спільно)
-- 🤝 Допомога Олександру з API endpoints для data loading
-- 🤝 Передача trained retrieval model Дмитру для ranking pipeline
+### 🚀 Майбутні завдання (Production)
+
+#### Priority 1: Improved Cold-Start ⚠️
+- [ ] **Content-based encoder for new users**
+  - MLP: user features (taste, equipment) → 64-dim embedding
+  - Train supervised: features of warm users → their learned embeddings
+  - Add to `models/retrieval.py` as `ColdStartEncoder`
+  - Integrate seamless fallback in `inference/recommender.py`
+  - **Goal**: NDCG@5 > 0.25 on `interactions_val_cold.csv`
+
+#### Priority 2: Chroma Integration for Inference ⚠️
+- [ ] **Replace .npy with Chroma queries**
+  - Modify `inference/recommender.py` to use Chroma instead of NumPy
+  - ANN search for top-K candidates (faster than full cosine scan)
+  - Add equipment metadata filtering in Chroma
+  - Benchmark: Chroma vs NumPy latency
+  - **Goal**: <5ms retrieval stage, scalable to 10K+ recipes
+
+#### Priority 3: Feature Storage in SQL 💾
+- [ ] **PostgreSQL/SQLite schema for features**
+  - Design schema: `user_features`, `recipe_features`, `interaction_stats`
+  - SQLAlchemy ORM models
+  - Migration script: CSV → SQL
+  - Update `preprocessing/preprocessing.py` to read from SQL
+  - **Goal**: Production-ready feature store, faster access
+
+#### Supporting: Training Improvements
+- [ ] Experiment with harder negative sampling
+- [ ] Ablation study: features vs no-features
+- [ ] Hyperparameter tuning for Two-Tower
 
 ---
 
-## 👨‍💻 Олександр - ML Engineer & Ranking Model Owner
+## 👨‍💻 Дмитро - ML Engineer & Ranking Model Owner
 
 ### Зона відповідальності
-**LightGBM Ranker + Hybrid Pipeline Integration**
+**LightGBM Ranker + Hybrid Pipeline + Optimization**
 
-### Основні завдання
+### ✅ Завершені завдання (MVP)
 
-#### Milestone 2: Ranking Model
+#### Milestone 2: Ranking Model ✅
 - ✅ **Phase 3**: LightGBM Ranker
-  - Чекати retrieval model від Дениса
-  - Генерація training data (100 кандидатів per user)
-  - `src/coffee_recipe_recommender/models/ranking.py` - LightGBM lambdarank
-  - Feature importance extraction (SHAP values)
-  - Hyperparameter tuning з Optuna
-- ✅ `scripts/train_ranker.py` - тренування LightGBM
+  - Trained retrieval model від Дениса → candidate generation ✅
+  - `models/ranking.py` - LightGBM lambdarank ✅
+  - `scripts/train_ranker.py` - training + Optuna hyperparameter tuning ✅
+  - SHAP feature importance visualization ✅
+  - Best params: n_estimators=173, lr=0.1 ✅
 
-#### Milestone 3: Hybrid Pipeline
-- ✅ **Phase 4**: Інтеграція Retrieval + Ranking
-  - `src/coffee_recipe_recommender/models/hybrid.py` - HybridRecommender class
-  - Equipment filtering logic (після retrieval, перед ranking)
-  - Model serialization (ONNX для Two-Tower, native для LightGBM)
-  - `scripts/train_ranker.py` - фінальний pipeline
+#### Milestone 3: Hybrid Pipeline ✅
+- ✅ **Phase 4**: Integration
+  - `models/hybrid.py` - HybridRecommenderModel ✅
+  - `inference/recommender.py` - Generic Recommender wrapper ✅
+  - Equipment filtering in features ✅
+  - Model serialization (.pt, .npy, .pkl) ✅
 
-#### Evaluation (спільно з Денисом)
-- ✅ **Phase 5**: Metrics & Evaluation
-  - `src/coffee_recipe_recommender/evaluation/metrics.py` - NDCG@5, HR@10, MRR
-  - `src/coffee_recipe_recommender/evaluation/evaluator.py` - evaluation pipeline
-  - `scripts/evaluate.py` - benchmark на validation sets
-  - Baseline comparisons (random, popularity, content-based)
+#### Evaluation ✅
+- ✅ **Phase 5**: Metrics
+  - `evaluation/metrics.py` - NDCG, HR, MRR, Coverage ✅
+  - Retrieval evaluation pipeline ✅
+  - Handcrafted baseline (`scripts/create_simple_handcrafted_embeddings.py`) ✅
 
-#### Optimization
-- ✅ **Phase 6**: Inference Optimization
-  - ONNX export для retrieval model
-  - LightGBM inference optimization
-  - Caching strategy (recipe embeddings, user embeddings)
-  - Latency profiling (<50ms target)
+#### Optimization ✅
+- ✅ **Phase 6**: Inference
+  - ONNX export script (`scripts/export_onnx.py`) ✅
+  - Recipe embeddings pre-computation ✅
+  - Latency tracking in API ✅
+
+### 🚀 Майбутні завдання (Production)
+
+#### Priority 1: End-to-End Hybrid Evaluation 📊ufe0f
+- [ ] **Full pipeline benchmarks**
+  - Evaluate hybrid model on `interactions_val.csv`
+  - Separate retrieval vs ranking contribution
+  - Ablation study: retrieval-only vs hybrid
+  - Compare with baselines (popularity, random)
+  - **Goal**: Document NDCG@5 improvements
+
+#### Priority 2: Feature Engineering Improvements 🛠
+- [ ] **SQL-based feature generation**
+  - Migrate `preprocessing/preprocessing.py` to use SQL
+  - Add caching for expensive features (user history stats)
+  - Pre-compute similarity features offline
+  - **Goal**: <20ms feature extraction per user
+
+#### Priority 3: Model Serving Optimization ⚡
+- [ ] **ONNX Runtime integration**
+  - Replace PyTorch with ONNX for retrieval inference
+  - Benchmark latency improvements
+  - INT8 quantization experiments
+  - **Goal**: <3ms per user embedding
+
+- [ ] **LightGBM optimization**
+  - Treelite compilation (optional)
+  - Batch prediction for multiple users
+  - Profile feature extraction bottlenecks
+
+#### Supporting: Experiments
+- [ ] Try XGBoost/CatBoost instead of LightGBM
+- [ ] Neural ranker (DCN, DeepFM) comparison
+- [ ] A/B testing simulation framework
 
 ---
 
-## 👨‍💻 Дмитро - Full-Stack Developer & API/UI Owner
+## 👨‍💻 Олександр - Full-Stack Developer & API/UI Owner
 
 ### Зона відповідальності
-**FastAPI Backend + Streamlit Frontend + Explainability**
+**FastAPI Backend + Web UI + Deployment**
 
-### Основні завдання
+### ✅ Завершені завдання (MVP)
 
-#### Milestone 3-4: API Development
-- ✅ **Phase 7**: Explainability
-  - `src/coffee_recipe_recommender/inference/explainer.py` - SHAP-based explanations
-  - Explanation templates (human-readable)
-  - Visualization utilities (radar charts, SHAP plots)
-
+#### Milestone 3-4: API Development ✅
 - ✅ **Phase 8**: FastAPI Backend
-  - `src/coffee_recipe_recommender/api/main.py` - REST API endpoints
-    - `POST /recommend` - головний endpoint
-    - `GET /user/{user_id}` - user profile
-    - `GET /user/{user_id}/history` - interaction history
-    - `GET /recipe/{recipe_id}` - recipe details
-    - `GET /health` - health check
-    - `GET /metrics` - model performance stats
-  - `src/coffee_recipe_recommender/api/schemas.py` - Pydantic models
-  - Model loading на startup
-  - OpenAPI documentation
+  - `client/app.py` - FastAPI app ✅
+    - `GET /users` - list users ✅
+    - `GET /recommend/{user_id}` - recommendations with latency tracking ✅
+    - `GET /` - HTML demo page ✅
+    - Static file serving for images ✅
+  - `client/services/` - Service layer (recommend_service, users_service) ✅
+  - Pydantic models for validation ✅
+  - Error handling (HTTPException) ✅
+  - OpenAPI docs at `/docs` ✅
 
-#### Milestone 4-5: Web Application
-- ✅ **Phase 9**: Streamlit Web App
-  - `client/app.py` - інтерактивний UI
-  - User selector + recommendations slider
-  - Візуалізації:
-    - Taste profile radar charts (user vs recipe)
-    - Rating distributions
-    - Equipment compatibility badges
-    - SHAP feature importance
-  - Advanced features:
-    - Recipe filtering (difficulty, prep time)
-    - Side-by-side comparison
-    - Real-time latency display
+#### Milestone 4-5: Web Application ✅
+- ✅ **Phase 9**: HTML/JS UI
+  - `client/templates/ui.html` - Interactive demo ✅
+  - User dropdown selector ✅
+  - Recommendations slider (1-50) ✅
+  - Recipe cards with images ✅
+  - Latency display ✅
+  - **Note**: HTML/FastAPI instead of Streamlit
 
-#### Integration & Serving
+#### Integration ✅
 - ✅ **Phase 6.1**: Inference API
-  - `src/coffee_recipe_recommender/inference/recommender.py` - main `recommend()` function
-  - Інтеграція з hybrid model від Дмитра
-  - Cold-start handling
-  - Error handling & validation
+  - Generic `Recommender` class integration ✅
+  - Hybrid model loading from checkpoints ✅
+  - Per-request model initialization (needs optimization) ✅
 
-### Deliverables
-1. **День 2-3**: Working FastAPI з усіма endpoints + документація
-2. **День 4**: Streamlit demo app з візуалізаціями, готове до деплою (потенційно), презентація
+### 🚀 Майбутні завдання (Production)
+
+#### Priority 1: Google Cloud Run Deployment ☁️
+- [ ] **Dockerize FastAPI app**
+  - Write `Dockerfile` (multi-stage build)
+  - Include model artifacts (or download from GCS)
+  - Optimize image size (<500MB)
+  - Test locally with `docker run`
+  - **Deliverable**: Working Docker image
+
+- [ ] **Deploy to Cloud Run**
+  - Set up Cloud Run service (GCP console or gcloud CLI)
+  - Configure: 2 vCPU, 4GB RAM, concurrency=10
+  - Upload models to Google Cloud Storage
+  - Environment variables for model paths
+  - HTTPS endpoint with custom domain (optional)
+  - **Deliverable**: Live production URL
+
+- [ ] **CI/CD pipeline**
+  - GitHub Actions: build → push to GCR → deploy to Cloud Run
+  - Automated deployment on merge to `main`
+  - Rollback strategy
+
+- [ ] **Monitoring & Logging**
+  - Cloud Logging integration
+  - Structured logging (JSON format)
+  - Latency metrics, error rates
+  - Alerting on failures (Email/Slack)
+  - **Goal**: Observability for production
+
+#### Priority 2: API Optimization ⚡
+- [ ] **Model loading refactor**
+  - Load models ONCE on startup (FastAPI lifespan events)
+  - Global singleton for `Recommender`
+  - Warm-up cache with popular users
+  - **Goal**: Eliminate per-request model loading
+
+- [ ] **Async endpoints**
+  - Make `recommend` endpoint async
+  - Use `asyncio` for concurrent user requests
+  - Batch inference for multiple users
+  - **Goal**: Higher throughput
+
+- [ ] **Additional endpoints**
+  - `GET /user/{user_id}/profile` - user details
+  - `GET /user/{user_id}/history` - interaction history
+  - `GET /recipe/{recipe_id}` - recipe details
+  - `POST /recommend_batch` - batch recommendations
+  - `GET /health` - health check for Cloud Run
+  - `GET /metrics` - Prometheus-style metrics
+
+#### Priority 3: UI Improvements 🎨
+- [ ] **Explainability features**
+  - Show top features for each recommendation
+  - SHAP waterfall plot (via endpoint)
+  - "Why this recipe?" tooltip
+
+- [ ] **Taste profile visualization**
+  - Radar chart: user taste vs recipe taste
+  - Use Chart.js or similar
+
+- [ ] **Advanced filters**
+  - Filter by equipment, difficulty, prep time
+  - Multi-select equipment filter
+  - Difficulty slider
+
+- [ ] **Alternative: Migrate to Streamlit** (optional)
+  - If HTML becomes too complex
+  - Streamlit has built-in charts, faster prototyping
+
+#### Supporting: Load Testing
+- [ ] **Locust/k6 load test**
+  - Simulate 100 concurrent users
+  - Measure p50, p95, p99 latency
+  - Test autoscaling on Cloud Run
+  - **Goal**: Validate <50ms p95 latency
 
 ---
 
 ## 🤝 Спільні завдання та синхронізація
 
-### Phase 5: Evaluation (Денис + Дмитро)
-- Metrics implementation
-- Benchmark на validation sets (warm + cold users)
-- Baseline comparisons
-- A/B testing simulation
+### ✅ MVP Completed (Phases 0-9)
+- ✅ Data pipeline, feature engineering
+- ✅ Two-Tower retrieval model
+- ✅ LightGBM ranker
+- ✅ Hybrid pipeline
+- ✅ FastAPI + HTML UI
+- ✅ Basic evaluation (retrieval-only)
 
-### Phase 6: Optimization (Дмитро + Олександр)
-- ONNX export та integration в API
-- Caching strategy
-- Latency profiling
-- Performance testing
+### 🚀 Production Priorities (Phase 12)
 
-### Phase 10: Testing & Documentation (Всі троє)
-- Unit tests для своїх модулів
-- Integration tests
-- README updates
-- Model card
-- Docker setup
+#### Critical Path:
+```
+1. Денис: Cold-start encoder (12.3.1) → Evaluate on val_cold
+2. Денис: Chroma inference (12.2.2) → Benchmark vs NumPy
+3. Олександр: Docker + Cloud Run (12.4.1-12.4.2) → Deploy staging
+4. Олександр: Load testing (12.4.5) → Validate latency
+5. Дмитро: Full hybrid evaluation (12.3.3) → Report metrics
+6. Денис: SQL feature store (12.1.1) → Production migration
+```
+
+#### Parallel Work:
+- **Денис**: Cold-start encoder + Chroma integration
+- **Дмитро**: Hybrid evaluation + ONNX optimization + Feature engineering
+- **Олександр**: Dockerization + Cloud Run + API optimization
+
+#### Weekly Sync Points:
+1. **Week 1**: Cold-start working + Docker ready
+2. **Week 2**: Cloud Run staging deployed + Chroma integrated
+3. **Week 3**: SQL features + Load testing passed
+4. **Week 4**: Production deployment + monitoring
+
+### Phase 7: Explainability (All Together)
+- ❌ Postponed to post-deployment
+- Low priority vs cold-start + deployment
+
+### Phase 10: Testing (All Together)
+- [ ] Unit tests (pytest) - each member for their modules
+- [ ] Integration tests - Олександр (API-level)
+- [ ] Performance benchmarks - Дмитро (model) + Олександр (API)
 
 ---
 
 ## 🔄 Workflow & Dependencies
 
-### Критичний шлях (блокуючі залежності):
+### ✅ MVP Critical Path (Completed):
 ```
-Денис: Data Pipeline → Two-Tower Model
+Денис: Data Pipeline → Two-Tower Model ✅
            ↓
-Дмитро: LightGBM Ranker → Hybrid Pipeline → Optimization
+Дмитро: LightGBM Ranker → Hybrid Pipeline ✅
            ↓
-Олександр: API Integration → Web App
+Олександр: API Integration → Web App ✅
 ```
 
-### Паралельна робота (незалежні):
-- Денис: EDA, feature engineering
-- Дмитро: Архітектура ranking pipeline, підготовка training scripts
-- Олександр: API schemas, UI mockups, explainability templates
+### 🚀 Production Critical Path:
+```
+Денис: Cold-start encoder (blocking hybrid eval)
+           ↓
+Дмитро: Full hybrid evaluation (blocking deployment decision)
+           ↓
+Олександр: Cloud Run deployment (blocking production)
+           ↓
+Денис: SQL features (post-deployment optimization)
+```
+
+### Паралельна робота:
+- **Денис**: Chroma integration (independent)
+- **Дмитро**: ONNX optimization (independent)
+- **Олександр**: Docker + API optimization (independent)
 
 ### Точки синхронізації:
-1. Денис передає data pipeline → Дмитро починає ranker, Олександр тестує data loading
-2. Денис передає retrieval model → Дмитро інтегрує в hybrid pipeline
-3. Дмитро передає hybrid pipeline → Олександр інтегрує в API
-4. Code freeze → Спільне тестування та debugging
-5. Фінальна презентація
+1. ✅ **MVP Done**: Data + Models + API working
+2. ⚠️ **Cold-start ready**: Денис → Дмитро can evaluate
+3. ⚠️ **Evaluation complete**: Дмитро → Олександр can deploy
+4. ⚠️ **Staging deployed**: Олександр → Team load tests
+5. ⚠️ **Production live**: All → Monitoring + iteration
 
 ---
 
@@ -176,36 +330,66 @@
 
 ### Git Strategy
 - **Branches**:
-  - `main` - stable production
-  - `denys/data-pipeline` - Денис
-  - `dmytro/ranking-model` - Дмитро
-  - `oleksandr/api-webapp` - Олександр
-- **Pull Requests**: Обов'язковий code review від іншого member
-- **Merge**: До `main` після review, реліз тільки stable milestones
+  - `main` - stable production (MVP done, deploy from here)
+  - `denys/cold-start` - Cold-start encoder work
+  - `denys/chroma-inference` - Chroma integration
+  - `dmytro/hybrid-eval` - Full evaluation pipeline
+  - `dmytro/onnx-optimize` - ONNX optimization
+  - `oleksandr/docker-deploy` - Dockerization + Cloud Run
+  - `oleksandr/api-optimize` - API improvements
+- **Pull Requests**: Code review від іншого member
+- **Merge**: До `main` після review + CI passing
+
+### Project Board (GitHub Projects)
+- **Backlog**: Phase 12 tasks
+- **In Progress**: Current sprint tasks
+- **Done**: Completed MVP phases
+
+### Weekly Standups (Async)
+- What did I complete?
+- What am I working on?
+- Any blockers?
+- ETA for current task
 ---
 
 ## 🎯 Success Criteria
 
-### Individual KPIs:
-- **Денис**:
-  - ✅ Data pipeline без помилок
-  - ✅ Retrieval NDCG@5 > 0.30
-  - ✅ Feature engineering документація
+### ✅ MVP KPIs (Completed):
+- ✅ Data pipeline без помилок
+- ✅ Two-Tower retrieval working (NDCG@5 ~0.30)
+- ✅ LightGBM ranker trained
+- ✅ Hybrid pipeline functional
+- ✅ FastAPI + HTML UI
+- ✅ Latency <100ms (per-request model loading)
 
-- **Дмитро**:
-  - ✅ Full pipeline NDCG@5 > 0.42
-  - ✅ Inference latency < 50ms
-  - ✅ Evaluation report з baselines
+### 🚀 Production KPIs:
 
-- **Олександр**:
-  - ✅ Working API (всі endpoints)
-  - ✅ Streamlit demo з візуалізаціями
-  - ✅ Deployment-ready (Docker)
+**Денис (Cold-Start + Chroma + Features)**:
+- [ ] Cold-start NDCG@5 > 0.25 on `interactions_val_cold.csv`
+- [ ] Chroma integration: <5ms retrieval latency
+- [ ] SQL feature store: <20ms feature extraction
+- [ ] Documentation: Cold-start model card, Chroma setup guide
+
+**Дмитро (Evaluation + Optimization)**:
+- [ ] Full hybrid NDCG@5 > 0.40 on `interactions_val.csv`
+- [ ] Ablation study: retrieval vs hybrid improvement
+- [ ] ONNX latency: <3ms per user embedding
+- [ ] Feature importance report (top 10 features)
+
+**Олександр (Deployment + API)**:
+- [ ] Docker image built (<500MB)
+- [ ] Cloud Run deployed (staging + production)
+- [ ] API latency: <50ms p95 under load
+- [ ] Load test: 100 concurrent users, no errors
+- [ ] Monitoring: Cloud Logging + alerting setup
+- [ ] Uptime: 99%+ after 1 week
 
 ### Team KPIs:
-- ✅ NDCG@5 > 0.4 на validation
-- ✅ Холодний старт handled
-- ✅ Пояснення (explainability)
-- ✅ Working demo
-- ✅ < 50ms inference
-- ✅ Повна документація
+- [ ] 🎯 **Cold-start NDCG@5 > 0.25**
+- [ ] 🎯 **Warm-user NDCG@5 > 0.40**
+- [ ] 🎯 **Inference latency < 50ms p95**
+- [ ] 🎯 **Production deployed on Cloud Run**
+- [ ] 🎯 **SQL feature store operational**
+- [ ] 🎯 **Chroma for ANN search**
+- [ ] Monitoring and alerting
+- [ ] Load test passed (100 users)
