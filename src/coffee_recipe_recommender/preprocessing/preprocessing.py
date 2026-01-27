@@ -668,6 +668,18 @@ class FeatureEngineer:
 
         # 10. Fill NaN values
         df[self.feature_cols] = df[self.feature_cols].fillna(0)
+        print(df.keys())
+
+        # X is pandas DataFrame
+        X = df[self.feature_cols+["user_id", "recipe_id"]]
+        X.to_parquet("artifacts/train_features.parquet")
+
+        # also save column order
+        df[self.feature_cols].columns.to_series().to_csv(
+            "artifacts/feature_names.csv",
+            index=False,
+            header=False
+        )
 
         return df[self.feature_cols]
 
