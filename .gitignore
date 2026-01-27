@@ -208,3 +208,4 @@ __marimo__/
 
 # Other directories to ignore
 data/
+runs/
