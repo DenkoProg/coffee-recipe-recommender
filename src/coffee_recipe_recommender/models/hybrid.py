@@ -4,6 +4,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import torch
+import shap
 
 from coffee_recipe_recommender.models.ranking import LightGBMRankerModel
 from coffee_recipe_recommender.models.retrieval import TwoTowerModel
@@ -265,6 +266,7 @@ class HybridRecommenderModel:
         self,
         user_id: str,
         candidates: list[str],
+        return_features: bool = False,
     ) -> list[tuple[str, float]]:
         """
         Stage 2: Rerank candidates using LightGBM.
@@ -289,6 +291,9 @@ class HybridRecommenderModel:
         scores = self.ranking_model.predict(features_df)
 
         ranked = sorted(zip(candidates, scores, strict=True), key=lambda x: x[1], reverse=True)
+        if return_features:
+            # keep same row order as candidates_df/features_df
+            return ranked, features_df, candidates_df
         return ranked
 
     def recommend(
@@ -331,3 +336,38 @@ class HybridRecommenderModel:
         ranked = self.rank_candidates(user_id, candidates)
 
         return ranked[:n]
+
+    def recommend_with_shap(
+        self,
+        user_id: str,
+        users_df: pd.DataFrame,
+        recipes_df: pd.DataFrame,
+        train_df: pd.DataFrame,
+        n: int = 5,
+    ):
+        self.users_df = users_df
+        self.recipes_df = recipes_df
+
+        if (self.feature_engineer.user_stats is None) or (self.feature_engineer.recipe_stats is None):
+            try:
+                self.feature_engineer.fit(users_df, recipes_df, train_df)
+            except Exception:
+                pass
+
+        candidates = self.get_candidates(user_id, k=self.candidate_size)
+        ranked, X_all, pairs_df = self.rank_candidates(user_id, candidates, return_features=True)
+
+        top = ranked[:n]
+        top_recipe_ids = [rid for rid, _ in top]
+
+        # map recipe_id -> row index in candidates_df/features_df
+        rid_to_row = {rid: i for i, rid in enumerate(pairs_df["recipe_id"].tolist())}
+        top_rows = [rid_to_row[rid] for rid in top_recipe_ids]
+
+        X_top = X_all.iloc[top_rows]
+
+        explainer = shap.TreeExplainer(self.ranking_model.model)  # adjust attribute if needed
+        shap_values = explainer.shap_values(X_top)
+
+        return top, X_top, shap_values, explainer
+
