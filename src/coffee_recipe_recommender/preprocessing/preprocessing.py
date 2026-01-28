@@ -445,6 +445,13 @@ class FeatureEngineer:
 
         # Distribution by time of day
         user_time_dist = train_full.groupby(["user_id", "time_of_day"]).size().unstack(fill_value=0)
+        # Ensure all expected time bins exist (some datasets may miss a bin)
+        expected_bins = ["morning", "afternoon", "evening", "night"]
+        for b in expected_bins:
+            if b not in user_time_dist.columns:
+                user_time_dist[b] = 0
+        # Reorder to stable column order then normalize to probabilities
+        user_time_dist = user_time_dist[expected_bins]
         user_time_dist = user_time_dist.div(user_time_dist.sum(axis=1), axis=0)
         user_time_dist.columns = [f"user_pct_{col}" for col in user_time_dist.columns]
 
@@ -536,13 +543,13 @@ class FeatureEngineer:
         user_portion_alignment = user_portion_alignment.rename("user_portion_alignment")
 
         # Combine alignment features
-        user_alignment = pd.DataFrame(
-            {
-                "user_id": user_strength_alignment.index,
-                "user_strength_alignment": user_strength_alignment.values,
-                "user_portion_alignment": user_portion_alignment.values,
-            }
-        )
+        # Ensure alignment series are indexed by user_id so merges use the same dtype
+        user_strength_alignment.index = users_with_consumed["user_id"].astype(str).values
+        user_portion_alignment.index = users_with_portion["user_id"].astype(str).values
+
+        user_alignment = pd.concat([user_strength_alignment, user_portion_alignment], axis=1)
+        user_alignment = user_alignment.reset_index().rename(columns={"index": "user_id"})
+        user_alignment["user_id"] = user_alignment["user_id"].astype(str)
 
         # ============================================
         # MERGE ALL
@@ -1142,9 +1149,9 @@ class FeatureEngineer:
 
         print(f"✅ Feature generation complete! Shape: {df[self.feature_cols].shape}")
         print(f"📋 Total features: {len(self.feature_cols)}")
-        print(f"🆕 New temporal/behavioral: 17 features")
-        print(f"🔥 NEW advanced cross: 47 features")
-        print(f"🎯 TOTAL: ~147 features!")
+        print("🆕 New temporal/behavioral: 17 features")
+        print("🔥 NEW advanced cross: 47 features")
+        print("🎯 TOTAL: ~147 features!")
 
         return df[self.feature_cols]
 

@@ -35,8 +35,8 @@ train-retrieval: ## Train Two-Tower retrieval model
 train-ranker: ## Train LightGBM ranker on retrieval candidates
 	uv run python src/scripts/train_ranker.py \
 		--data-dir data \
-		--output-dir runs/ranking/improved-features \
-		--n-candidates 50 \
+		--output-dir runs/ranking/very-advanced-features \
+		--n-candidates 100 \
 		--optuna-trials 20
 
 .PHONY: train-cold-start
@@ -75,7 +75,7 @@ eval-hybrid: ## Evaluate hybrid model on validation set (warm users)
 	uv run python src/scripts/evaluate_retrieval.py \
 		--checkpoint runs/retrieval/baseline/retrieval_final.pt \
 		--embeddings runs/retrieval/baseline/recipe_embeddings.npy \
-		--ranker-model runs/ranking/improved-features/ranker.pkl \
+		--ranker-model runs/ranking/very-advanced-features/ranker.pkl \
 		--mode hybrid \
 		--eval-split val
 
@@ -85,7 +85,7 @@ eval-hybrid-cold: ## Evaluate hybrid model on cold-start users
 		--checkpoint runs/retrieval/baseline/retrieval_final.pt \
 		--embeddings runs/retrieval/baseline/recipe_embeddings.npy \
 		--cold-start-path runs/retrieval/cold_encoder_baseline/cold_encoder.pt \
-		--ranker-model runs/ranking/improved-features/ranker.pkl \
+		--ranker-model runs/ranking/very-advanced-features/ranker.pkl \
 		--mode hybrid \
 		--eval-split val_cold
 
