@@ -535,7 +535,8 @@ from coffee_recipe_recommender.inference.recommender import Recommender
 recommender = Recommender.from_hybrid_checkpoints(
     retrieval_checkpoint_path="runs/retrieval/baseline/retrieval_final.pt",
     ranker_model_path="runs/ranking/improved-features/ranker.pkl",
-    embeddings_path="runs/retrieval/baseline/recipe_embeddings.npy",
+    vector_store_path="data/chroma",
+    feature_store_path="data/feature_store.db",
     users_df=users_df,
     recipes_df=recipes_df,
     candidate_size=100,
@@ -619,15 +620,14 @@ torch.onnx.export(
 Для великих каталогів (>100K рецептів) використовуємо HNSW індекс через ChromaDB:
 
 ```python
-# Зберігаємо ембедінги в Chroma
-collection = init_collection(persist_dir="data/chroma", distance="cosine")
-upsert_embeddings(collection, ids=recipe_ids, embeddings=recipe_embeddings)
+# Зберігаємо ембедінги в Chroma через VectorStore
+from coffee_recipe_recommender.db.vector_store import VectorStore
+
+store = VectorStore(persist_dir="data/chroma")
+store.save(embeddings=recipe_embeddings, ids=recipe_ids, reset=True)
 
 # Швидкий пошук
-results = collection.query(
-    query_embeddings=[user_embedding],
-    n_results=100,
-)
+similar_ids, distances = store.query(user_embedding, n_results=100)
 ```
 
 ### 9.4 Latency Budget

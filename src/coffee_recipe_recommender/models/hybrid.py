@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -6,7 +7,7 @@ import torch
 
 from coffee_recipe_recommender.models.ranking import LightGBMRankerModel
 from coffee_recipe_recommender.models.retrieval import TwoTowerModel
-from coffee_recipe_recommender.preprocessing.preprocessing import FeatureEngineer
+from coffee_recipe_recommender.preprocessing.features import FeatureEngineer
 
 
 class HybridRecommenderModel:
@@ -30,6 +31,9 @@ class HybridRecommenderModel:
         candidate_size: int = 100,
         device: str = "cpu",
         cold_start_encoder: Any = None,
+        feature_store_path: Path | str | None = None,
+        enabled_groups: list[str] | None = None,
+        preset: str | None = None,
     ):
         """
         Initialize hybrid model.
@@ -45,6 +49,9 @@ class HybridRecommenderModel:
             recipes_df: Recipes DataFrame with features
             candidate_size: Number of candidates from retrieval stage
             device: Device for inference
+            feature_store_path: Optional path to SQLite feature store for pre-computed stats
+            enabled_groups: List of feature groups to enable
+            preset: Predefined set of groups
         """
         self.retrieval_model = retrieval_model.to(device).eval()
         self.ranking_model = ranking_model
@@ -57,7 +64,15 @@ class HybridRecommenderModel:
         self.candidate_size = candidate_size
         self.device = device
         self.use_features = retrieval_model.user_tower.use_features
-        self.feature_engineer = FeatureEngineer()
+
+        # Load feature engineer from SQLite if path provided, otherwise create empty
+        if feature_store_path is not None:
+            self.feature_engineer = FeatureEngineer.from_feature_store(
+                str(feature_store_path), enabled_groups=enabled_groups, preset=preset
+            )
+        else:
+            self.feature_engineer = FeatureEngineer(enabled_groups=enabled_groups, preset=preset)
+
         self.cold_start_encoder = cold_start_encoder.to(device) if cold_start_encoder is not None else None
 
     def _get_equipment_compatible_recipes(self, user_id: str) -> set[int]:

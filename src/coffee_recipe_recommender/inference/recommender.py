@@ -11,6 +11,11 @@ from coffee_recipe_recommender.models.ranking import LightGBMRankerModel
 from coffee_recipe_recommender.models.retrieval import ColdStartEncoder, RetrievalRecommenderModel, TwoTowerModel
 
 
+# Resolve default data path relative to this file to handle calls from subdirectories
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_VECTOR_STORE = PROJECT_ROOT / "data" / "chroma"
+
+
 class Recommender:
     """
     Generic recommender that works with any underlying model.
@@ -75,12 +80,22 @@ class Recommender:
     def from_retrieval_checkpoint(
         cls,
         checkpoint_path: Path,
-        embeddings_path: Path,
+        embeddings_path: Path | None = None,
         users_df: pd.DataFrame | None = None,
         cold_start_path: Path | None = None,
         device: str = "cpu",
+        vector_store_path: Path | str | None = DEFAULT_VECTOR_STORE,
     ) -> "Recommender":
-        """Load retrieval-only recommender from checkpoint."""
+        """Load retrieval-only recommender from checkpoint.
+
+        Args:
+            checkpoint_path: Path to two-tower model checkpoint
+            embeddings_path: Path to .npy embeddings file (optional if vector_store_path provided)
+            users_df: Optional users dataframe
+            cold_start_path: Optional path to cold-start encoder
+            device: Device for inference
+            vector_store_path: Optional path to ChromaDB vector store (alternative to embeddings_path)
+        """
         with torch.serialization.safe_globals([pathlib.PosixPath]):
             checkpoint = torch.load(checkpoint_path, map_location=device)
 
@@ -97,7 +112,32 @@ class Recommender:
         )
         model.load_state_dict(checkpoint["model_state_dict"])
 
-        recipe_embeddings = np.load(embeddings_path)
+        # Load embeddings from VectorStore or .npy file
+        # Load embeddings from VectorStore or .npy file
+        # Prioritize vector_store_path (default) -> embeddings_path
+        recipe_embeddings = None
+
+        # Try loading from vector store first
+        if vector_store_path is not None:
+            # Convert to Path if string
+            vs_path = Path(vector_store_path)
+            if vs_path.exists():
+                from coffee_recipe_recommender.db.vector_store import VectorStore
+
+                store = VectorStore(vs_path)
+                if store.exists():
+                    recipe_embeddings, _, _ = store.load_embeddings()
+
+        # Fallback to embeddings_path if vector store didn't work
+        if recipe_embeddings is None and embeddings_path is not None:
+            recipe_embeddings = np.load(embeddings_path)
+
+        if recipe_embeddings is None:
+            raise ValueError(
+                f"Could not load embeddings. vector_store_path={vector_store_path} "
+                f"(exists={Path(vector_store_path).exists() if vector_store_path else False}), "
+                f"embeddings_path={embeddings_path}"
+            )
 
         retrieval_model = RetrievalRecommenderModel(
             model=model,
@@ -125,14 +165,33 @@ class Recommender:
         cls,
         retrieval_checkpoint_path: Path,
         ranker_model_path: Path,
-        embeddings_path: Path,
-        users_df: pd.DataFrame,
-        recipes_df: pd.DataFrame,
+        embeddings_path: Path | None = None,
+        users_df: pd.DataFrame = None,
+        recipes_df: pd.DataFrame = None,
         candidate_size: int = 50,
         device: str = "cpu",
         cold_start_path: Path | None = None,
+        feature_store_path: Path | str | None = None,
+        vector_store_path: Path | str | None = DEFAULT_VECTOR_STORE,
+        enabled_groups: list[str] | None = None,
+        preset: str | None = None,
     ) -> "Recommender":
-        """Load hybrid recommender from retrieval + ranking checkpoints."""
+        """Load hybrid recommender from retrieval + ranking checkpoints.
+
+        Args:
+            retrieval_checkpoint_path: Path to two-tower model checkpoint
+            ranker_model_path: Path to LightGBM ranker model
+            embeddings_path: Path to .npy embeddings file (optional if vector_store_path provided)
+            users_df: Users dataframe
+            recipes_df: Recipes dataframe
+            candidate_size: Number of candidates for retrieval stage
+            device: Device for inference
+            cold_start_path: Optional path to cold-start encoder
+            feature_store_path: Optional path to SQLite feature store
+            vector_store_path: Optional path to ChromaDB vector store (alternative to embeddings_path)
+            enabled_groups: Optional list of feature groups to enable
+            preset: Optional feature selection preset
+        """
         with torch.serialization.safe_globals([pathlib.PosixPath]):
             checkpoint = torch.load(retrieval_checkpoint_path, map_location=device)
 
@@ -152,7 +211,32 @@ class Recommender:
         ranking_model = LightGBMRankerModel()
         ranking_model.load(ranker_model_path)
 
-        recipe_embeddings = np.load(embeddings_path)
+        # Load embeddings from VectorStore or .npy file
+        # Load embeddings from VectorStore or .npy file
+        # Prioritize vector_store_path (default) -> embeddings_path
+        recipe_embeddings = None
+
+        # Try loading from vector store first
+        if vector_store_path is not None:
+            # Convert to Path if string
+            vs_path = Path(vector_store_path)
+            if vs_path.exists():
+                from coffee_recipe_recommender.db.vector_store import VectorStore
+
+                store = VectorStore(vs_path)
+                if store.exists():
+                    recipe_embeddings, _, _ = store.load_embeddings()
+
+        # Fallback to embeddings_path if vector store didn't work
+        if recipe_embeddings is None and embeddings_path is not None:
+            recipe_embeddings = np.load(embeddings_path)
+
+        if recipe_embeddings is None:
+            raise ValueError(
+                f"Could not load embeddings. vector_store_path={vector_store_path} "
+                f"(exists={Path(vector_store_path).exists() if vector_store_path else False}), "
+                f"embeddings_path={embeddings_path}"
+            )
 
         # Optionally load cold-start encoder
         cs_encoder = None
@@ -175,6 +259,9 @@ class Recommender:
             candidate_size=candidate_size,
             device=device,
             cold_start_encoder=cs_encoder,
+            feature_store_path=feature_store_path,
+            enabled_groups=enabled_groups,
+            preset=preset,
         )
 
         return cls(model=hybrid)
