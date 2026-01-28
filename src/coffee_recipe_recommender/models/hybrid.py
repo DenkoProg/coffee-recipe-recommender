@@ -7,7 +7,7 @@ import torch
 
 from coffee_recipe_recommender.models.ranking import LightGBMRankerModel
 from coffee_recipe_recommender.models.retrieval import TwoTowerModel
-from coffee_recipe_recommender.preprocessing.preprocessing import FeatureEngineer
+from coffee_recipe_recommender.preprocessing.features import FeatureEngineer
 
 
 class HybridRecommenderModel:

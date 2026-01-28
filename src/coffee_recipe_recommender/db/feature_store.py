@@ -9,7 +9,7 @@ import pandas as pd
 
 
 if TYPE_CHECKING:
-    from coffee_recipe_recommender.preprocessing.preprocessing import FeatureEngineer
+    from coffee_recipe_recommender.preprocessing.features import FeatureEngineer
 
 
 class FeatureStore:

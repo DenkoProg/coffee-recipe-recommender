@@ -7,7 +7,7 @@ import pandas as pd
 import shap
 
 from coffee_recipe_recommender.models.ranking import LightGBMRankerModel
-from coffee_recipe_recommender.preprocessing.preprocessing import FeatureEngineer, generate_training_data
+from coffee_recipe_recommender.preprocessing.features import FeatureEngineer, generate_training_data
 
 
 def parse_args() -> argparse.Namespace:

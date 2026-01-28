@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 
 from coffee_recipe_recommender.db.feature_store import FeatureStore
-from coffee_recipe_recommender.preprocessing.preprocessing import FeatureEngineer
+from coffee_recipe_recommender.preprocessing.features import FeatureEngineer
 
 
 def parse_args() -> argparse.Namespace:
