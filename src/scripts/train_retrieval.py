@@ -135,8 +135,8 @@ def main() -> None:
     # Load data
     users_df = load_users(args.data_dir / "users.csv")
     recipes_df = load_recipes(args.data_dir / "recipes.csv")
-    train_df = load_interactions(args.data_dir / "interactions_train.csv")
-    val_df = load_interactions(args.data_dir / "interactions_val.csv")
+    train_df = load_interactions(args.data_dir / "interactions_train_split.csv")
+    val_df = load_interactions(args.data_dir / "interactions_test_split.csv")
 
     # Create ID mappings
     user_to_idx, recipe_to_idx, idx_to_user, idx_to_recipe = create_id_mappings(users_df, recipes_df)

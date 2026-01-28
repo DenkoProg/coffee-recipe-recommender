@@ -306,6 +306,37 @@ class TwoTowerModel(nn.Module):
         return self.recipe_tower(recipe_idx, recipe_features)
 
 
+class ColdStartEncoder(nn.Module):
+    """Maps user profile features to the shared embedding space used by the Two-Tower model.
+
+    Minimal, robust encoder intended for cold-start users. By default it expects a 4-d taste
+    vector but can accept larger feature vectors (equipment, counts, etc.). Output is L2-normalized
+    to match the retrieval embedding space.
+    """
+
+    def __init__(
+        self, feature_dim: int = 4, embedding_dim: int = 64, hidden_dims: list[int] | None = None, dropout: float = 0.2
+    ):
+        super().__init__()
+        if hidden_dims is None:
+            hidden_dims = [256, 128]
+
+        layers: list[nn.Module] = []
+        prev = feature_dim
+        for h in hidden_dims:
+            layers.extend([nn.Linear(prev, h), nn.BatchNorm1d(h), nn.ReLU(), nn.Dropout(dropout)])
+            prev = h
+
+        layers.append(nn.Linear(prev, embedding_dim))
+
+        self.mlp = nn.Sequential(*layers)
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        """features: (batch_size, feature_dim) -> (batch_size, embedding_dim) normalized"""
+        out = self.mlp(features)
+        return F.normalize(out, p=2, dim=1)
+
+
 class RetrievalRecommenderModel:
     """Internal wrapper for retrieval-only inference."""
 
@@ -328,44 +359,118 @@ class RetrievalRecommenderModel:
         self.users_df = users_df
         self.device = device
         self.use_features = model.user_tower.use_features
+        self.cold_start_encoder: nn.Module | None = None
+
+    def _get_equipment_compatible_recipes(self, user_id: str, recipes_df: pd.DataFrame | None = None) -> set[int]:
+        """Get set of recipe indices compatible with user's owned equipment.
+
+        Args:
+            user_id: User identifier
+            recipes_df: Optional recipes dataframe for equipment lookup
+
+        Returns:
+            Set of recipe indices (idx_to_recipe keys) that have required_equipment
+            as subset of user's owned_equipment. If no equipment constraint, returns all.
+        """
+        if self.users_df is None:
+            return set(range(len(self.idx_to_recipe)))
+
+        user_rows = self.users_df[self.users_df["user_id"] == user_id]
+        if user_rows.empty:
+            return set(range(len(self.idx_to_recipe)))
+
+        user_equipment = set(user_rows.iloc[0].get("owned_equipment") or [])
+        if not user_equipment or recipes_df is None:
+            return set(range(len(self.idx_to_recipe)))  # No equipment constraint
+
+        compatible_indices = set()
+        for idx, recipe_id in self.idx_to_recipe.items():
+            recipe_rows = recipes_df[recipes_df["recipe_id"] == recipe_id]
+            if not recipe_rows.empty:
+                required_eq = set(recipe_rows.iloc[0].get("required_equipment") or [])
+                if required_eq.issubset(user_equipment):
+                    compatible_indices.add(idx)
+            else:
+                compatible_indices.add(idx)  # Unknown recipe - include by default
+
+        return compatible_indices if compatible_indices else set(range(len(self.idx_to_recipe)))
 
     @torch.no_grad()
-    def predict(
+    def recommend(
         self,
         user_id: str,
+        users_df: pd.DataFrame,
+        recipes_df: pd.DataFrame,
+        train_df: pd.DataFrame,
         n: int = 5,
-        exclude_recipes: set[str] | None = None,
     ) -> list[tuple[str, float]]:
-        """Generate top-N recommendations using cosine similarity."""
-        if user_id not in self.user_to_idx:
-            raise ValueError(f"Unknown user_id: {user_id}")
+        """Generate top-N recipe recommendations for a user.
 
-        user_idx = self.user_to_idx[user_id]
-        user_tensor = torch.tensor([user_idx], dtype=torch.long, device=self.device)
+        Args:
+            user_id: Target user identifier
+            users_df: Users dataframe (users.csv loaded)
+            recipes_df: Recipes dataframe (recipes.csv loaded)
+            train_df: Training interactions (interactions_train.csv loaded)
+            n: Number of recommendations to return
 
-        user_features = None
-        if self.use_features and self.users_df is not None:
-            user_row = self.users_df[self.users_df["user_id"] == user_id].iloc[0]
-            user_features = torch.tensor(
+        Returns:
+            List of (recipe_id, score) tuples, sorted by score descending.
+            Higher scores indicate stronger recommendations.
+        """
+        # Support cold-start users via optional `cold_start_encoder`.
+        user_emb = None
+        if user_id in self.user_to_idx:
+            user_idx = self.user_to_idx[user_id]
+            user_tensor = torch.tensor([user_idx], dtype=torch.long, device=self.device)
+
+            user_features = None
+            if self.use_features and self.users_df is not None:
+                user_row = self.users_df[self.users_df["user_id"] == user_id].iloc[0]
+                user_features = torch.tensor(
+                    [
+                        [
+                            user_row["taste_pref_bitterness"],
+                            user_row["taste_pref_sweetness"],
+                            user_row["taste_pref_acidity"],
+                            user_row["taste_pref_body"],
+                        ]
+                    ],
+                    dtype=torch.float32,
+                    device=self.device,
+                )
+
+            user_emb = self.model.get_user_embeddings(user_tensor, user_features)
+        else:
+            # Cold-start path
+            if self.cold_start_encoder is None or self.users_df is None:
+                raise ValueError(f"Unknown user_id: {user_id}")
+
+            user_row = self.users_df[self.users_df["user_id"] == user_id]
+            if user_row.empty:
+                raise ValueError(f"Unknown user_id: {user_id}")
+            user_row = user_row.iloc[0]
+
+            # Default cold-start features: 4-d taste vector
+            cs_feat = torch.tensor(
                 [
                     [
-                        user_row["taste_pref_bitterness"],
-                        user_row["taste_pref_sweetness"],
-                        user_row["taste_pref_acidity"],
-                        user_row["taste_pref_body"],
+                        user_row.get("taste_pref_bitterness", 0.5),
+                        user_row.get("taste_pref_sweetness", 0.5),
+                        user_row.get("taste_pref_acidity", 0.5),
+                        user_row.get("taste_pref_body", 0.5),
                     ]
                 ],
                 dtype=torch.float32,
                 device=self.device,
             )
-
-        user_emb = self.model.get_user_embeddings(user_tensor, user_features)
+            user_emb = self.cold_start_encoder(cs_feat)
         similarities = torch.matmul(user_emb, self.recipe_embeddings.T).squeeze(0)
 
-        if exclude_recipes:
-            exclude_indices = [self.recipe_to_idx[rid] for rid in exclude_recipes if rid in self.recipe_to_idx]
-            if exclude_indices:
-                similarities[exclude_indices] = -float("inf")
+        # Apply hard equipment filtering
+        compatible = self._get_equipment_compatible_recipes(user_id, recipes_df)
+        for idx in range(len(similarities)):
+            if idx not in compatible:
+                similarities[idx] = -float("inf")
 
         top_scores, top_indices = torch.topk(similarities, k=min(n, len(similarities)))
 

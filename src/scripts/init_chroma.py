@@ -2,7 +2,7 @@ import argparse
 from pathlib import Path
 
 from coffee_recipe_recommender.db.chroma_store import init_collection, upsert_embeddings
-from coffee_recipe_recommender.preprocessing.embeddings_io import load_embedding_bundle
+from coffee_recipe_recommender.preprocessing.embeddings import load_embedding_bundle
 
 
 def parse_args() -> argparse.Namespace:

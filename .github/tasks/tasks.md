@@ -18,416 +18,406 @@
 - ✅ **Explainable**: LightGBM provides feature importance out-of-the-box
 - ✅ **Production-proven**: Standard architecture at major tech companies
 
-## Phase 0: Project Setup & Data Analysis
+## Phase 0: Project Setup & Data Analysis ✅ COMPLETED
 
-- [ ] **0.1** Update `pyproject.toml` with ML dependencies
-  - **Core ML**: torch, lightgbm, scikit-learn
-  - **Data**: pandas, polars, numpy
-  - **API/Web**: fastapi, uvicorn[standard], streamlit
-  - **Experiment tracking**: wandb
-  - **Optimization**: onnx, onnxruntime
-  - **Optional frameworks**: recbole, microsoft-recommenders
+- [x] **0.1** Update `pyproject.toml` with ML dependencies
+  - **Core ML**: torch, lightgbm, scikit-learn ✅
+  - **Data**: pandas, numpy ✅
+  - **API/Web**: fastapi, uvicorn[standard] ✅
+  - **Optimization**: onnx, onnxruntime ✅
+  - **Vector DB**: chromadb ✅
 
-- [ ] **0.2** Create project directory structure
-  ```
-  src/
-  ├── coffee_recipe_recommender/
-  │   ├── __init__.py
-  │   ├── data/
-  │   │   ├── __init__.py+ feature generation
-  │   │   ├── preprocessing.py    # Feature engineering pipeline
-  │   │   └── loaders.py          # Data loading utilities
-  │   ├── models/
-  │   │   ├── __init__.py
-  │   │   ├── retrieval.py        # Two-tower retrieval model
-  │   │   ├── ranking.py          # LightGBM ranker
-  │   │   ├── hybrid.py           # Combined pipeline
-  │   │   └── layers.py           # Custom neural layers
-  │   ├── training/
-  │   │   ├── __init__.py
-  │   │   ├── train_retrieval.py  # Two-tower training
-  │   │   ├── train_ranker.py     # LightGBM training
-  │   │   └── losses.py           # Custom loss functions
-  │   ├── evaluation/
-  │   │   ├── __init__.py
-  │   │   ├── metrics.py          # NDCG, HR, MRR, Coverage
-  │   │   └── evaluator.py        # Evaluation pipeline
-  │   ├── inference/
-  │   │   ├── __init__.py
-  │   │   ├── recommender.py      # Main recommend() function
-  │   │   └── explainer.py        # Feature importance & explanations
-  │   ├── api/
-  │   │   ├── __init__.py
-  │   │   ├── main.py             # FastAPI application
-  │   │   └── schemas.py          # Pydantic models
-  │   └── config/
-  │       ├── __init__.py
-  │       └── settings.py         # Configuration
-  ├── client/
-  │   └── app.py                  # Streamlit web app
-  ├── experiments/               # Optional: alternative approaches
-  │   ├── ncf.py                 # Neural Collaborative Filtering
-  │   ├── sasrec.py              # Sequential recommendations
-  │   ├── lightgcn.py            # Graph Neural Networks
-  │   └── recbole_baseline.py    # Using RecBole framework
-  └── scripts/
-      ├── train_retrieval.py     # Train retrieval stage
-      ├── train_ranker.py        # Train ranking stage
-      ├── evaluate.py            # Full evaluation
-      └── serve.py               # Production servingscript
-      └── export_model.py         # ONNX export script
-  ```
+- [x] **0.2** Create project directory structure
+  - ✅ `src/coffee_recipe_recommender/` - Core package
+  - ✅ `preprocessing/` - Feature engineering
+  - ✅ `training/` - Datasets, loaders, losses
+  - ✅ `models/` - Retrieval, Ranking, Hybrid
+  - ✅ `evaluation/` - Metrics
+  - ✅ `inference/` - Recommender
+  - ✅ `db/` - Chroma vector store
+  - ✅ `client/` - FastAPI app
+  - ✅ `scripts/` - Training scripts
 
-- [ ] **0.3** Exploratory Data Analysis notebook
-  - Load and profile all CSV files
-  - Analyze interaction sparsity (user-item matrix density)
-  - Visualize rating distributions
-  - Analyze temporal patterns in interactions
-  - Profile cold-start users from `cold_users.json`
-  - Equipment and product distribution analysis
-  - Taste preference clustering
+- [x] **0.3** Exploratory Data Analysis
+  - ✅ Notebooks created for embeddings visualization
+  - ✅ Analyzed interaction patterns
+  - ✅ Chroma embeddings exploration
 
-- [ ] **0.4** Document data statistics and insights
-  - Number of users, recipes, interactions
-  - Sparsity level
-  - Average interactions per user/recipe
-  - Cold-start user percentage
+- [x] **0.4** Document data statistics and insights
+  - ✅ Documented in README files
+  - ✅ Dataset documentation in `docs/README_dataset.md`
 
 ---
 
-## Phase 1: Data Pipeline & Feature Engineering
+## Phase 1: Data Pipeline & Feature Engineering ✅ COMPLETED
 
-- [ ] **1.1** Implement data loading utilities (`src/coffee_recipe_recommender/data/loaders.py`)
-  - Load CSV files with proper dtypes
-  - Parse JSON columns (equipment, products, tags)
-  - Handle missing values in ratings
-  - Create user/recipe ID mappings (string → int indices)
+- [x] **1.1** Implement data loading utilities (`training/loaders.py`) ✅
+  - ✅ Load CSV files with proper dtypes
+  - ✅ Parse JSON columns (equipment, products, tags)
+  - ✅ Handle missing values
+  - ✅ Create user/recipe ID mappings
 
-- [ ] **1.2** Rich feature engineering for LightGBM (`src/coffee_recipe_recommender/data/preprocessing.py`)
-  - **User features** (16+ features):
-    - Taste preferences (4D vector: bitterness, sweetness, acidity, body)
-    - Preferred strength, portion size (categorical)
-    - Equipment count and diversity
-    - Account age, interaction history stats
-  - **Recipe features** (20+ features):
-    - Taste profile (4D vector)
-    - Strength, portion size, preparation time, difficulty
-    - Equipment requirements, product complexity
-    - Tag frequencies, popularity metrics
-  - **Interaction features** (15+ features):
-    - User-recipe taste similarity (cosine, L2 distance)
-    - Equipment compatibility score
-    - Recipe popularity among similar users
-    - Temporal features (hour, day of week, recency)
-    - User engagement patterns (avg rating, completion rate)
-  - **Cross features**:
-    - Taste preference × recipe profile interactions
-    - Equipment overlap features
+- [x] **1.2** Rich feature engineering (`preprocessing/preprocessing.py`) ✅
+  - ✅ **User features**: Taste preferences (4D), equipment, history stats
+  - ✅ **Recipe features**: Taste profile (4D), difficulty, equipment, popularity
+  - ✅ **Interaction features**: Taste similarity (cosine), equipment match, temporal features
+  - ✅ **Cross features**: 50+ features total
 
-- [ ] **1.3** Negative sampling for retrieval model
-  - Random negatives with 1:4 ratio
-  - Hard negatives (popular but not interacted)
-  - In-batch negatives for contrastive learning
+- [x] **1.3** Negative sampling implemented ✅
+  - ✅ In-batch negatives for contrastive learning
+  - ✅ Random candidate sampling for ranker
 
-- [ ] **1.4** Create datasets (`src/coffee_recipe_recommender/data/dataset.py`)
-  - `RetrievalDataset`: (user, item, label) for Two-Tower
-  - `RankingDataset`: Rich features for LightGBM
-  - `ColdStartDataset`: Feature-only for new users
-  - Efficient batching with DataLoader
+- [x] **1.4** Create datasets (`training/datasets.py`) ✅
+  - ✅ `RetrievalDataset`: Basic user-item pairs
+  - ✅ `RetrievalDatasetWithFeatures`: With taste features
+  - ✅ Efficient batching with DataLoader
 
-- [ ] **1.5** Data validation
-  - Schema validation
-  - Train/val split verification
-  - Feature distribution checks
+- [x] **1.5** Data validation ✅
+  - ✅ Train/val split implemented
+  - ✅ Feature generation validated
 
 ---
 
-## Phase 2: Retrieval Model (Two-Tower)
+## Phase 2: Retrieval Model (Two-Tower) ✅ MOSTLY COMPLETED
 
-- [ ] **2.1** Implement User Tower (`src/coffee_recipe_recommender/models/retrieval.py`)
-  ```python
-  class UserTower(nn.Module):
-      # Inputs: user_id embedding + user features (taste, equipment, etc.)
-      # Architecture: Embedding layer + 3-layer MLP [256, 128, 64]
-      # Output: 64-dim user embedding
-      # Features: Dropout, BatchNorm, ReLU activations
-  ```
+- [x] **2.1** Implement User Tower (`models/retrieval.py`) ✅
+  - ✅ User embedding + optional features (taste 4D)
+  - ✅ MLP architecture: [256, 128] → 64-dim
+  - ✅ Dropout, BatchNorm, ReLU activations
+  - ✅ L2 normalization for cosine similarity
 
-- [ ] **2.2** Implement Recipe Tower
-  ```python
-  class RecipeTower(nn.Module):
-      # Inputs: recipe_id embedding + recipe features
-      # Architecture: Embedding layer + 3-layer MLP [256, 128, 64]
-      # Output: 64-dim recipe embedding (same space as user)
-  ```
+- [x] **2.2** Implement Recipe Tower ✅
+  - ✅ Recipe embedding + optional features
+  - ✅ Same architecture as User Tower
+  - ✅ Shared embedding space (64-dim)
 
-- [ ] **2.3** Two-Tower model with contrastive loss
-  - Temperature-scaled dot product similarity
-  - InfoNCE loss with in-batch negatives
-  - Optional: Add supervised head for rating prediction
+- [x] **2.3** Two-Tower model with contrastive loss ✅
+  - ✅ Temperature-scaled dot product similarity
+  - ✅ InfoNCE loss with in-batch negatives (`training/losses.py`)
+  - ✅ Symmetric InfoNCE loss variant
+  - ✅ Trained multiple versions (baseline, with features)
 
-- [ ] **2.4** Cold-start user encoder
-  - MLP mapping user features → user embedding space
-  - Train to match warm user embeddings from features
-  - Seamless fallback during inference
+- [ ] **2.4** Cold-start user encoder ⚠️ TODO
+  - ❌ Need dedicated MLP for feature-only users
+  - ❌ Train to match warm user embeddings
+  - ⚠️ Current: Falls back to average embedding or fails
 
-## Phase 3: Ranking Model (LightGBM)
+## Phase 3: Ranking Model (LightGBM) ✅ COMPLETED
 
-- [ ] **3.1** Generate training data for ranker
-  - For each user: sample 100 candidates from retrieval model
-  - Add true positives (interacted recipes)
-  - Extract all 50+ features per (user, recipe) pair
-  - Create LightGBM dataset with label (rating/clicked)
+- [x] **3.1** Generate training data for ranker ✅
+  - ✅ Sample 50 candidates per user from retrieval
+  - ✅ Add true positives (interacted recipes)
+  - ✅ Extract 50+ features per (user, recipe) pair
+  - ✅ Binary relevance labels
 
-- [ ] **3.2** Train LightGBM ranker (`src/coffee_recipe_recommender/models/ranking.py`)
-  ```python
-  import lightgbm as lgb
+- [x] **3.2** Train LightGBM ranker (`models/ranking.py`) ✅
+  - ✅ LambdaRank objective for NDCG optimization
+  - ✅ Early stopping on validation set
+  - ✅ Trained models saved in `runs/ranking/`
 
-  params = {
-      'objective': 'lambdarank',  # or 'regression' for rating prediction
-      'metric': 'ndcg',
-      'ndcg_eval_at': [5],
-      'num_leaves': 31,
-      'learning_rate': 0.05,
-      'feature_fraction': 0.8,
-  }
-  ```
+- [x] **3.3** Feature importance analysis ✅
+  - ✅ SHAP integration in training script
+  - ✅ Top features identified
+  - ✅ Visualization in training output
 
-- [ ] **3.3** Feature importance analysis
-  - Extract SHAP values from LightGBM
-  - Identify top features for recommendations
-  - Use for explainability
-
-- [ ] **3.4** Hyperparameter tuning
-  - Optuna for LightGBM hyperparameter search
-  - Cross-validation with NDCG@5
-  - Early stopping on validation set
+- [x] **3.4** Hyperparameter tuning ✅
+  - ✅ Optuna for hyperparameter search
+  - ✅ Best params: n_estimators=173, lr=0.1
+  - ✅ Cross-validation with NDCG metric
 
 ---
 
-## Phase 4: Hybrid Pipeline Integration
+## Phase 4: Hybrid Pipeline Integration ✅ COMPLETED
 
-- [ ] **4.1** Implement combined pipeline (`src/coffee_recipe_recommender/models/hybrid.py`)
-  ```python
-  class HybridRecommender:
-      def __init__(self, retrieval_model, ranker_model):
-          self.retrieval = retrieval_model  # Two-Tower
-          self.ranker = ranker_model        # LightGBM
+- [x] **4.1** Implement combined pipeline (`models/hybrid.py`) ✅
+  - ✅ `HybridRecommenderModel` class
+  - ✅ Two-stage pipeline: Retrieval → Ranking
+  - ✅ Feature extraction between stages
+  - ✅ Generic `Recommender` wrapper in `inference/recommender.py`
 
-      def recommend(self, user_id, n=5, candidate_size=100):
-          # 1. Retrieval: Get top-100 candidates
-          # 2. Feature extraction for (user, candidate) pairs
-          # 3. Ranking: LightGBM scores top-100
-          # 4. Return top-n
-  ```
+- [x] **4.2** Equipment constraint filtering ✅
+  - ✅ Implemented in feature engineering
+  - ✅ Equipment match score as feature
 
-- [ ] **4.2** Equipment constraint filtering
-  - Apply after retrieval, before ranking (reduce LightGBM load)
-  - Pre-compute equipment compatibility matrix
-  - Bitwise operations for fast filtering
+- [x] **4.3** Training scripts ✅
+  - ✅ `scripts/train_retrieval.py` - Complete Two-Tower training
+  - ✅ `scripts/train_ranker.py` - LightGBM with Optuna tuning
+  - ✅ `scripts/evaluate_retrieval.py` - Evaluation pipeline
 
-- [ ] **4.3** Training scripts
-  - `scripts/train_retrieval.py`: Train Two-Tower model
-  - `scripts/train_ranker.py`: Generate candidates → train LightGBM
-  - Proper train/val splitting throughout
-
-- [ ] **4.4** Model serialization
-  - Save Two-Tower as ONNX for fast inference
-  - Save LightGBM in native format
-  - Save feature extractors and preprocessors
+- [x] **4.4** Model serialization ✅
+  - ✅ Two-Tower saved as PyTorch `.pt` checkpoints
+  - ✅ Recipe embeddings saved as `.npy`
+  - ✅ LightGBM saved as `.pkl`
+  - ✅ ONNX export script available (`scripts/export_onnx.py`)
 
 ---
 
-## Phase 5: Evaluation & Metrics
+## Phase 5: Evaluation & Metrics ✅ MOSTLY COMPLETED
 
-- [ ] **5.1** Implement metrics (`src/coffee_recipe_recommender/evaluation/metrics.py`)
-  ```python
-  def ndcg_at_k(relevances: List[float], k: int) -> float
-  def hit_rate_at_k(recommendations, ground_truth, k: int) -> float
-  def mrr(recommendations, ground_truth) -> float
-  def coverage(all_recommendations, catalog_size) -> float
-  ```
+- [x] **5.1** Implement metrics (`evaluation/metrics.py`) ✅
+  - ✅ `ndcg_at_k` - NDCG@5, NDCG@10
+  - ✅ `hit_rate_at_k` - HR@5, HR@10
+  - ✅ `mrr` - Mean Reciprocal Rank
+  - ✅ `coverage` - Catalog coverage
 
-- [ ] **5.2** Full evaluation pipeline (`scripts/evaluate.py`)
-  - Evaluate on `interactions_val.csv` (warm users)
-  - Evaluate on `interactions_val_cold.csv` (cold users)
-  - Separate metrics for retrieval vs. full pipeline
-  - Generate detailed report (NDCG@5, HR@10, Coverage, etc.)
+- [x] **5.2** Evaluation pipeline (`scripts/evaluate_retrieval.py`) ✅
+  - ✅ Evaluate on `interactions_val.csv` (warm users)
+  - ✅ Evaluate on `interactions_val_cold.csv` (cold users)
+  - ✅ Retrieval-only evaluation
+  - ⚠️ Full hybrid pipeline evaluation TODO
 
-- [ ] **5.3** Baseline comparisons
-  - Random baseline
-  - Popularity baseline
-  - Content-based (cosine similarity on taste features)
-  - Pure collaborative filtering (user/item similarity)
-  - Report all in comparison table
+- [ ] **5.3** Baseline comparisons ⚠️ PARTIAL
+  - ✅ Handcrafted embeddings baseline (`scripts/create_simple_handcrafted_embeddings.py`)
+  - ❌ Popularity baseline
+  - ❌ Random baseline
+  - ❌ Comparison table
 
-- [ ] **5.4** A/B testing simulation
-  - Online metrics: CTR, conversion rate simulation
-  - Diversity and novelty metrics
-  - Temporal validation (time-based split)
-
----
-6: Inference Optimization (<50ms target)
-
-- [ ] **6.1** Implement main `recommend()` function (`src/coffee_recipe_recommender/inference/recommender.py`)
-  ```python
-  def recommend(
-      user_id: str,
-      users_df: pd.DataFrame,
-      recipes_df: pd.DataFrame,
-      train_df: pd.DataFrame,
-      n: int = 5
-  ) -> List[Tuple[str, float]]:
-      # 1. Check if cold-start user
-      # 2. Retrieval: Get 100 candidates (<10ms)
-      # 3. Filter by equipment
-      # 4. Extract features
-      # 5. Ranking: LightGBM scores (<30ms)
-      # 6. Return top-n
-  ```
-
-- [ ] **6.2** Pre-computation and caching
-  - Pre-compute ALL recipe embeddings at startup (ONNX inference)
-  - Build FAISS index for fast ANN search (optional, if >1000 recipes)
-  - Cache user embeddings with LRU cache (TTL: 1 hour)
-  - Pre-compute equipment compatibility matrix
-
-- [ ] **6.3** ONNX export for retrieval model
-  - Export User/Recipe towers to ONNX
-  - Optimize with ONNX Runtime (graph optimization, quantization)
-  - Benchmark: should be <5ms per user embedding
-
-- [ ] **6.4** LightGBM optimization
-  - Use native LightGBM inference (already fast)
-  - Batch feature extraction (vectorized operations)
-  - Optional: Convert to Treelite for faster prediction
-
-- [ ] **6.5** Latency profiling
-  - Instrument each stage with timing
-  - Ident7: Explainability (Bonus)
-
-- [ ] **7.1** LightGBM feature importance (`src/coffee_recipe_recommender/inference/explainer.py`)
-  ```python
-  def explain_recommendation(user_id: str, recipe_id: str) -> Dict:
-      # 1. Get feature values for this (user, recipe) pair
-      # 2. Compute SHAP values using LightGBM TreeExplainer
-      # 3. Identify top contributing features
-      # 4. Generate human-readable explanation
-  ```
-
-- [ ] **7.2** Explanation templates
-  - "High taste match (0.92): You prefer bitter coffee, this recipe scores 0.9 on bitterness"
-  - "Equipment compatible: You own all required equipment"
-  - "Similar to your favorites: Users who liked X also enjoyed this"
-  - "Quick preparation (3 min) matches your preference"
-
-- [ ] **7.3** Visualization
-  - SHAP waterfall plots for feature contributions
-  - Taste profile comparison (user vs. recipe radar chart)
-  - Add to API responses and web UIrecipe_005"],
-          "top_features": ["bitterness_match", "quick_preparation"],
-         8: API Development
-
-- [ ] **8.1** FastAPI application (`src/coffee_recipe_recommender/api/main.py`)
-  ```python
-  @app.post("/recommend")
-  async def get_recommendations(
-      user_id: str,
-      n: int = 5,
-      include_explanations: bool = False,
-      candidate_size: int = 100
-  ) -> RecommendationResponse
-
-  @app.get("/user/{user_id}")
-  async def get_user_profile(user_id: str) -> UserProfile
-
-  @app.get("/user/{user_id}/history")
-  async def get_user_history(user_id: str, limit: int = 50) -> List[Interaction]
-
-  @app.get("/recipe/{recipe_id}")
-  async def get_recipe_details(recipe_id: str) -> Recipe
-
-  @app.get("/health")
-  async def health_check() -> Dict[str, str]
-
-  @app.get("/metrics")
-  async def get_metrics() -> Dict[str, float]  # Model performance stats
-  ```
-
-- [ ] **8.2** Pydantic schemas (`src/coffee_recipe_recommender/api/schemas.py`)
-  - Request/response validation
-  - Proper error handling
-
-- [ ] **8.3** Model loading and warm-up
-  - Load models on startup (lifespan event)
-  - Pre-compute recipe embeddings
-  - Warm-up cache with popular users
-
-- [ ] **8.4** API documentation
-  - OpenAPI/Swagger auto-docs
-  - Example requests and curl command
-
-- [ ] **7.3** Model loading and caching
-  - Load model on startup
-  - Warm up cache with popular users
-
-- [ ] **7.4** API documentation
-  - OpenAPI/Swagger auto-generated
-  - Example requests/responses
+- [ ] **5.4** A/B testing simulation ❌ TODO
+  - ❌ Online metrics simulation
+  - ❌ Diversity and novelty metrics
 
 ---
 
-## Phase 9: Web Application
+## Phase 6: Inference Optimization ✅ MOSTLY COMPLETED
 
-- [ ] **9.1** Streamlit app (`client/app.py`)
-  - User selector dropdown (with search)
-  - Number of recommendations slider (1-20)
-  - Display user profile: taste preferences, equipment, stats
-  - Show interaction history with ratings and timestamps
-  - Display recommendations with scores and explanations
+- [x] **6.1** Implement main `recommend()` function ✅
+  - ✅ `inference/recommender.py` - Generic `Recommender` class
+  - ✅ Supports retrieval-only and hybrid modes
+  - ✅ `from_retrieval_checkpoint()` and `from_hybrid_checkpoints()` loaders
+  - ⚠️ Cold-start handling needs improvement
 
-- [ ] **9.2** Interactive visualizations
-  - Taste profile radar chart (user vs. recipe comparison)
-  - Rating distribution histogram
-  - Equipment compatibility badges
-  - Feature importance bar chart (from SHAP)
+- [x] **6.2** Pre-computation and caching ✅
+  - ✅ Pre-compute ALL recipe embeddings (saved as `.npy`)
+  - ✅ Recipe embeddings loaded at startup
+  - ⚠️ User embedding caching TODO
+  - ⚠️ Equipment compatibility pre-computation TODO
 
-- [ ] **9.3** Advanced features
-  - Filter recommendations by difficulty/preparation time
-  - Compare multiple recipes side-by-side
-  - "Why not recommended?" for specific recipes
-  - Real-time latency display
+- [x] **6.3** ONNX export ✅
+  - ✅ Export script created (`scripts/export_onnx.py`)
+  - ⚠️ ONNX inference integration TODO
 
----
+- [x] **6.4** LightGBM optimization ✅
+  - ✅ Native LightGBM inference (fast)
+  - ✅ Batch feature extraction (vectorized)
 
-## Phase 10: Testing & Documentation
+- [x] **6.5** Latency profiling ✅
+  - ✅ Timing in API endpoint (`took_ms` field)
+  - ✅ Inline timing in recommender
 
-- [ ] **10.1** Unit tests (pytest)
-  - Data loading and preprocessing
-  - Feature engineering correctness
-  - Model forward pass (retrieval + ranking)
-  - Metric calculations (NDCG, HR, etc.)
-  - Equipment filtering logic
+## Phase 7: Explainability ❌ NOT STARTED
 
-- [ ] **10.2** Integration tests
-  - End-to-end recommendation pipeline
-  - API endpoint tests (FastAPI TestClient)
-  - Cold-start user handling
+- [ ] **7.1** LightGBM feature importance (`inference/explainer.py`) ❌
+  - ❌ Dedicated explainer module
+  - ❌ SHAP integration for individual predictions
+  - ❌ Feature contribution extraction
 
-- [ ] **10.3** Performance benchmarks
-  - Inference latency (target: <50ms)
-  - Memory usage profiling
-  - Throughput tests (requests/second)
+- [ ] **7.2** Explanation templates ❌
+  - ❌ Human-readable explanations
+  - ❌ Template system for feature descriptions
 
-- [ ] **10.4** Documentation
-  - Update README with architecture diagram
-  - Model card (training data, performance, limitations)
-  - API usage examples
-  - Deployment guide (Docker, requirements)
+- [ ] **7.3** Visualization ❌
+  - ❌ SHAP waterfall plots
+  - ❌ Taste profile radar charts
+  - ❌ Add to API responses
 
 ---
 
-## Phase 11: Optional Experiments
+## Phase 8: API Development ✅ COMPLETED
+
+- [x] **8.1** FastAPI application (`client/app.py`) ✅
+  - ✅ `GET /users` - List users
+  - ✅ `GET /recommend/{user_id}` - Get recommendations
+  - ✅ `GET /` - Demo HTML UI
+  - ✅ FastAPI with static file serving
+
+- [x] **8.2** Pydantic schemas (`client/services/`) ✅
+  - ✅ Request/response models in service layer
+  - ✅ Error handling with HTTPException
+
+- [x] **8.3** Model loading ✅
+  - ✅ Models loaded per request (optimization needed)
+  - ✅ Recipe embeddings pre-computed
+
+- [x] **8.4** API documentation ✅
+  - ✅ OpenAPI/Swagger auto-generated
+  - ✅ FastAPI docs available at `/docs`
+
+---
+
+## Phase 9: Web Application ✅ COMPLETED (HTML/FastAPI)
+
+- [x] **9.1** Web UI (`client/templates/ui.html`) ✅
+  - ✅ User selector dropdown
+  - ✅ Number of recommendations slider
+  - ✅ Display recommendations with images and scores
+  - ✅ FastAPI backend serving HTML
+  - ⚠️ Not Streamlit, but functional HTML UI
+
+- [x] **9.2** Interactive visualizations ✅
+  - ✅ Recipe images displayed
+  - ✅ Latency display
+  - ❌ Taste profile radar chart TODO
+  - ❌ Feature importance TODO
+
+- [ ] **9.3** Advanced features ⚠️ PARTIAL
+  - ❌ Filter by difficulty/prep time
+  - ❌ Recipe comparison
+  - ❌ Explainability features
+  - ✅ Real-time latency display
+
+---
+
+## Phase 10: Testing & Documentation ⚠️ PARTIAL
+
+- [ ] **10.1** Unit tests (pytest) ❌
+  - ❌ No test suite yet
+
+- [ ] **10.2** Integration tests ❌
+  - ❌ End-to-end tests TODO
+
+- [ ] **10.3** Performance benchmarks ⚠️ PARTIAL
+  - ✅ Latency tracking in API
+  - ❌ Formal benchmark suite TODO
+
+- [x] **10.4** Documentation ✅ GOOD
+  - ✅ README files for dataset, retrieval, presentation
+  - ✅ Role documentation
+  - ✅ Copilot instructions
+  - ⚠️ Deployment guide TODO
+
+---
+
+## Phase 11: Optional Experiments ❌ NOT STARTED
+
+_Skipped for MVP - can be explored later_
+
+---
+
+## Phase 12: Production Readiness & Deployment 🚀 PRIORITY
+
+### 12.1 Feature Storage & Caching
+
+- [ ] **12.1.1** Implement SQL feature storage
+  - ❌ Set up PostgreSQL/SQLite for feature caching
+  - ❌ Schema for user features, recipe features, precomputed similarities
+  - ❌ Migration scripts for existing CSV data
+  - ❌ ORM models (SQLAlchemy) for features
+  - **Why**: Faster feature access, production-ready persistence
+
+- [ ] **12.1.2** Feature caching layer
+  - ❌ Redis/in-memory cache for hot features
+  - ❌ LRU cache for user embeddings
+  - ❌ Cache invalidation strategy
+  - **Why**: Sub-10ms feature retrieval
+
+### 12.2 Chroma Integration for Inference
+
+- [x] **12.2.1** Chroma store setup ✅
+  - ✅ `db/chroma_store.py` - Chroma wrapper
+  - ✅ `scripts/init_chroma.py` - Initialize collections
+  - ✅ Recipe embeddings stored in Chroma
+
+- [ ] **12.2.2** Use Chroma in inference pipeline ⚠️ TODO
+  - ❌ Replace `.npy` loading with Chroma queries
+  - ❌ ANN search for top-K candidates (faster than full scan)
+  - ❌ Benchmark: Chroma vs NumPy for retrieval stage
+  - **Why**: Scalable to 10K+ recipes, faster ANN search
+
+- [ ] **12.2.3** Chroma metadata filtering
+  - ❌ Add equipment constraints as Chroma metadata
+  - ❌ Filter at retrieval stage (before ranking)
+  - ❌ Use `where` clauses for equipment compatibility
+  - **Why**: Reduce invalid candidates, faster pipeline
+
+### 12.3 Improved Cold-Start Handling
+
+- [ ] **12.3.1** Content-based cold-start encoder
+  - ❌ MLP: user features → embedding space
+  - ❌ Train on warm users (supervised: features → learned embeddings)
+  - ❌ Seamless fallback for new users
+  - **Why**: Current cold-start fails or uses poor heuristics
+
+- [ ] **12.3.2** Hybrid cold-start strategy
+  - ❌ For users with 1-5 interactions: blend collaborative + content
+  - ❌ Weight decay from content→collaborative as history grows
+  - ❌ Implement weighted ensemble in recommender
+  - **Why**: Smooth transition from cold→warm users
+
+- [ ] **12.3.3** Cold-start evaluation
+  - ❌ Dedicated evaluation on `interactions_val_cold.csv`
+  - ❌ Separate metrics for zero-history vs. few-shot users
+  - ❌ Target: NDCG@5 > 0.25 for cold users
+
+### 12.4 Google Cloud Run Deployment
+
+- [ ] **12.4.1** Dockerize application
+  - ❌ `Dockerfile` for FastAPI app
+  - ❌ Multi-stage build (build + runtime)
+  - ❌ Include model artifacts (embeddings, checkpoints)
+  - ❌ Optimize image size (<500MB)
+  - **Why**: Container required for Cloud Run
+
+- [ ] **12.4.2** Cloud Run setup
+  - ❌ Create Cloud Run service
+  - ❌ Configure CPU/memory (2 vCPU, 4GB RAM)
+  - ❌ Set concurrency and autoscaling
+  - ❌ Environment variables for model paths
+  - **Why**: Serverless deployment, auto-scaling
+
+- [ ] **12.4.3** Model artifact storage
+  - ❌ Upload models to Google Cloud Storage
+  - ❌ Download on container startup (or bake into image)
+  - ❌ Versioned model paths
+  - **Why**: Separate code from large model files
+
+- [ ] **12.4.4** Monitoring and logging
+  - ❌ Cloud Logging integration
+  - ❌ Latency and error metrics
+  - ❌ Alerting on failures
+  - **Why**: Production observability
+
+- [ ] **12.4.5** Load testing
+  - ❌ Locust/k6 load test script
+  - ❌ Test autoscaling behavior
+  - ❌ Verify <50ms p95 latency under load
+  - **Why**: Validate production readiness
+
+### 12.5 Model Serving Optimization
+
+- [ ] **12.5.1** Model startup optimization
+  - ❌ Load models once on container startup (not per request)
+  - ❌ FastAPI lifespan events for initialization
+  - ❌ Warm-up cache with popular users
+  - **Why**: Currently loads model per request (slow)
+
+- [ ] **12.5.2** ONNX inference integration
+  - ❌ Use ONNX Runtime instead of PyTorch for retrieval
+  - ❌ Quantization (INT8) for faster inference
+  - ❌ Benchmark: ONNX vs PyTorch latency
+  - **Why**: 2-3x faster inference
+
+- [ ] **12.5.3** Batch inference API
+  - ❌ Endpoint: `POST /recommend_batch` (multiple users)
+  - ❌ Vectorized feature extraction
+  - ❌ Batch LightGBM predictions
+  - **Why**: Higher throughput for batch use cases
+
+---
+
+## Critical Path for Deployment
+
+```
+1. Fix cold-start (12.3.1) → Test on val_cold
+2. Integrate Chroma for inference (12.2.2) → Benchmark
+3. Dockerize (12.4.1) → Local testing
+4. Deploy to Cloud Run (12.4.2) → Staging environment
+5. Load test (12.4.5) → Optimize if needed
+6. Feature storage (12.1.1) → Production migration
+```
+
+---
+
+## Archived: Phase 11 Optional Experiments
 
 **Alternative Models to Try** (in `experiments/` folder):
 

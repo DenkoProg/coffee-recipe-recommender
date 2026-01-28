@@ -1,4 +1,5 @@
-import os
+import argparse
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import optuna
@@ -9,29 +10,55 @@ from coffee_recipe_recommender.models.ranking import LightGBMRankerModel
 from coffee_recipe_recommender.preprocessing.preprocessing import FeatureEngineer, generate_training_data
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Train LightGBM ranker on retrieval candidates.")
+
+    # Data paths
+    parser.add_argument("--data-dir", type=Path, default=Path("data"), help="Directory containing CSV files")
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("runs/ranking/improved-features"),
+        help="Directory to save trained model",
+    )
+
+    # Ranker hyperparameters
+    parser.add_argument("--n-candidates", type=int, default=50, help="Number of candidates to generate per user")
+    parser.add_argument("--optuna-trials", type=int, default=20, help="Number of Optuna tuning trials")
+
+    # Hardware
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda" if __name__ != "__main__" else "cpu",
+        help="Device (unused but for consistency)",
+    )
+
+    return parser.parse_args()
+
+
 def main():
+    args = parse_args()
     print("📂 Loading raw data...")
-    users = pd.read_csv("data/users.csv")
-    recipes = pd.read_csv("data/recipes.csv")
-    interactions = pd.read_csv("data/interactions_train.csv")
+    users = pd.read_csv(args.data_dir / "users.csv")
+    recipes = pd.read_csv(args.data_dir / "recipes.csv")
+    train_interactions = pd.read_csv(args.data_dir / "interactions_train_split.csv")
+    val_interactions = pd.read_csv(args.data_dir / "interactions_test_split.csv")
 
     all_recipes = recipes["recipe_id"].unique()
-    train_df = generate_training_data(interactions, all_recipes, n_candidates=50)  # Постав 50-100
+    train_df = generate_training_data(train_interactions, all_recipes, n_candidates=args.n_candidates)
+    val_df = generate_training_data(val_interactions, all_recipes, n_candidates=args.n_candidates)
 
     print("🛠 Generating features...")
     fe = FeatureEngineer()
-    X = fe.generate(train_df, users, recipes, train_interactions_df=interactions)
+    X = fe.generate(train_df, users, recipes, train_interactions_df=train_interactions)
+    X_val = fe.generate(val_df, users, recipes, train_interactions_df=train_interactions)
+
     y = train_df["relevance"].astype(int)
+    y_val = val_df["relevance"].astype(int)
+
     qids = train_df.groupby("user_id", sort=False).size().to_numpy()
-
-    n_groups = len(qids)
-    train_groups_n = int(n_groups * 0.8)
-
-    split_idx = sum(qids[:train_groups_n])
-
-    X_train, X_val = X.iloc[:split_idx], X.iloc[split_idx:]
-    y_train, y_val = y.iloc[:split_idx], y.iloc[split_idx:]
-    qids_train, qids_val = qids[:train_groups_n], qids[train_groups_n:]
+    qids_val = val_df.groupby("user_id", sort=False).size().to_numpy()
 
     print("🔍 Starting Optuna tuning...")
 
@@ -51,13 +78,13 @@ def main():
         }
 
         model = LightGBMRankerModel(param)
-        model.fit(X_train, y_train, qids_train, eval_set=(X_val, y_val, qids_val))
+        model.fit(X, y, qids, eval_set=(X_val, y_val, qids_val))
 
         score = model.model.best_score_["valid_0"]["ndcg@1"]
         return score
 
     study = optuna.create_study(direction="maximize")
-    study.optimize(objective, n_trials=20)
+    study.optimize(objective, n_trials=args.optuna_trials)
 
     print(f"✅ Best params: {study.best_params}")
 
@@ -67,11 +94,11 @@ def main():
     best_params["metric"] = "ndcg"
 
     final_model = LightGBMRankerModel(best_params)
-    final_model.fit(X, y, qids)
+    final_model.fit(X, y, qids, eval_set=(X_val, y_val, qids_val))
 
-    os.makedirs("artifacts", exist_ok=True)
-    final_model.save("artifacts/ranking_model.pkl")
-    print("💾 Model saved to artifacts/ranking_model.pkl")
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    final_model.save(str(args.output_dir / "ranker.pkl"))
+    print(f"💾 Model saved to {args.output_dir / 'ranker.pkl'}")
 
     print("📊 Generating SHAP values...")
     explainer = shap.TreeExplainer(final_model.model)
@@ -80,8 +107,8 @@ def main():
     plt.figure()
     shap.summary_plot(shap_values, X, show=False)
     plt.tight_layout()
-    plt.savefig("artifacts/shap_importance.png")
-    print("🖼  SHAP plot saved to artifacts/shap_importance.png")
+    plt.savefig(str(args.output_dir / "shap_importance.png"))
+    print(f"🖼  SHAP plot saved to {args.output_dir / 'shap_importance.png'}")
 
 
 if __name__ == "__main__":
