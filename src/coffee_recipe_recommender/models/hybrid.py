@@ -297,6 +297,15 @@ class HybridRecommenderModel:
         Returns:
             List of (recipe_id, score) tuples, sorted by score descending.
         """
+        self.users_df = users_df
+        self.recipes_df = recipes_df
+
+        if (self.feature_engineer.user_stats is None) or (self.feature_engineer.recipe_stats is None):
+            try:
+                self.feature_engineer.fit(users_df, recipes_df, train_df)
+            except Exception:
+                pass
+
         # Stage 1: Retrieve candidates
         candidates = self.get_candidates(user_id, k=self.candidate_size)
 
