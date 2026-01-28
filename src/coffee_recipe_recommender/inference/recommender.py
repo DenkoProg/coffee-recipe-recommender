@@ -61,6 +61,32 @@ class Recommender:
             return self.model.recommend(user_id, users_df, recipes_df, train_df, n)
         else:
             raise AttributeError("Model must have 'recommend' method")
+        
+    def recommend_with_shap(
+        self,
+        user_id: str,
+        users_df: pd.DataFrame,
+        recipes_df: pd.DataFrame,
+        train_df: pd.DataFrame,
+        n: int = 5,
+    ) -> list[tuple[str, float]]:
+        """
+        Generate top-N recipe recommendations for a user.
+
+        Args:
+            user_id: Target user identifier
+            users_df: Users dataframe (users.csv loaded)
+            recipes_df: Recipes dataframe (recipes.csv loaded)
+            train_df: Training interactions (interactions_train.csv loaded)
+            n: Number of recommendations to return
+
+        Returns:
+            List of (recipe_id, score) tuples, sorted by score descending.
+        """
+        if hasattr(self.model, "recommend_with_shap"):
+            return self.model.recommend_with_shap(user_id, users_df, recipes_df, train_df, n)
+        else:
+            raise AttributeError("Model must have 'recommend_with_shap' method")
 
     def recommend_batch(
         self,

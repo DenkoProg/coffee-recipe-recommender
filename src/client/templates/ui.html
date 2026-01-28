@@ -227,6 +227,51 @@
     statusEl.textContent = msg;
   }
 
+  function fmtSigned(x, digits = 2) {
+    const v = Number(x);
+    if (!Number.isFinite(v)) return "";
+    return (v >= 0 ? "+" : "") + v.toFixed(digits);
+  }
+
+  function renderWhy(why) {
+    if (!why) return `<p class="small">(no explanation)</p>`;
+
+    const reasons = Array.isArray(why.reasons) ? why.reasons : [];
+    const tradeoffs = Array.isArray(why.tradeoffs) ? why.tradeoffs : [];
+
+    return `
+      <div style="display:grid; gap:8px;">
+        ${why.score_lift != null ? `
+          <div class="small"><b>Lift vs baseline:</b> ${fmtSigned(why.score_lift, 2)}</div>
+        ` : ""}
+
+        ${reasons.length ? `
+          <div>
+            <div class="small" style="margin-bottom:6px;"><b>Top reasons</b></div>
+            <ul style="margin:0; padding-left:18px; display:grid; gap:4px;">
+              ${reasons.map(r => `
+                <li>${escapeHtml(r.label)} <span class="small">(${fmtSigned(r.impact, 2)})</span></li>
+              `).join("")}
+            </ul>
+          </div>
+        ` : ""}
+
+        ${tradeoffs.length ? `
+          <div>
+            <div class="small" style="margin-bottom:6px;"><b>Trade-offs</b></div>
+            <ul style="margin:0; padding-left:18px; display:grid; gap:4px;">
+              ${tradeoffs.map(r => `
+                <li>${escapeHtml(r.label)} <span class="small">(${fmtSigned(r.impact, 2)})</span></li>
+              `).join("")}
+            </ul>
+          </div>
+        ` : ""}
+
+        ${(!reasons.length && !tradeoffs.length) ? `<p class="small">(no explanation)</p>` : ""}
+      </div>
+    `;
+  }
+
   function escapeHtml(s) {
     return String(s ?? "").replace(/[&<>"']/g, c => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -283,8 +328,7 @@ function renderCard(recipe) {
               <div class="explain-btn">?
                 <div class="explain-popup">
                   <b>Why this coffee?</b>
-                  <p>Explanation will appear here.</p>
-                  <small>(Later: SHAP / similarity / feature importance)</small>
+                  ${renderWhy(recipe.why_recommended)}
                 </div>
               </div>
             </div>

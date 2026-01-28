@@ -23,6 +23,7 @@ class RecipeOut(BaseModel):
     difficulty: str | None = None
     required_equipment: list[str] = []
     tags: list[str] = []
+    why_recommended: dict | None = None
 
 
 class RecommendOut(BaseModel):
