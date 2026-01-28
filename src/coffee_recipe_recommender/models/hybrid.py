@@ -32,7 +32,6 @@ class HybridRecommenderModel:
         device: str = "cpu",
         cold_start_encoder: Any = None,
         feature_store_path: Path | str | None = None,
-        feature_subset: list[str] | None = None,
         enabled_groups: list[str] | None = None,
         preset: str | None = None,
     ):
@@ -51,7 +50,6 @@ class HybridRecommenderModel:
             candidate_size: Number of candidates from retrieval stage
             device: Device for inference
             feature_store_path: Optional path to SQLite feature store for pre-computed stats
-            feature_subset: Optional list of feature names to use (for testing reduced feature sets)
             enabled_groups: List of feature groups to enable
             preset: Predefined set of groups
         """
@@ -75,7 +73,6 @@ class HybridRecommenderModel:
         else:
             self.feature_engineer = FeatureEngineer(enabled_groups=enabled_groups, preset=preset)
 
-        self.feature_subset = feature_subset
         self.cold_start_encoder = cold_start_encoder.to(device) if cold_start_encoder is not None else None
 
     def _get_equipment_compatible_recipes(self, user_id: str) -> set[int]:
@@ -288,9 +285,7 @@ class HybridRecommenderModel:
                 "recipe_id": candidates,
             }
         )
-        features_df = self.feature_engineer.generate(
-            candidates_df, self.users_df, self.recipes_df, feature_subset=self.feature_subset
-        )
+        features_df = self.feature_engineer.generate(candidates_df, self.users_df, self.recipes_df)
         scores = self.ranking_model.predict(features_df)
 
         ranked = sorted(zip(candidates, scores, strict=True), key=lambda x: x[1], reverse=True)

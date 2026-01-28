@@ -172,7 +172,6 @@ class Recommender:
         device: str = "cpu",
         cold_start_path: Path | None = None,
         feature_store_path: Path | str | None = None,
-        feature_subset: list[str] | None = None,
         vector_store_path: Path | str | None = DEFAULT_VECTOR_STORE,
         enabled_groups: list[str] | None = None,
         preset: str | None = None,
@@ -189,7 +188,6 @@ class Recommender:
             device: Device for inference
             cold_start_path: Optional path to cold-start encoder
             feature_store_path: Optional path to SQLite feature store
-            feature_subset: Optional list of features to use
             vector_store_path: Optional path to ChromaDB vector store (alternative to embeddings_path)
             enabled_groups: Optional list of feature groups to enable
             preset: Optional feature selection preset
@@ -262,7 +260,6 @@ class Recommender:
             device=device,
             cold_start_encoder=cs_encoder,
             feature_store_path=feature_store_path,
-            feature_subset=feature_subset,
             enabled_groups=enabled_groups,
             preset=preset,
         )
