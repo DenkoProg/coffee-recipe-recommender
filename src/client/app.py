@@ -34,7 +34,7 @@ def get_recommendations(user_id: str, n: int = Query(5, ge=1, le=50)):
     recipes_df = load_recipes(Path("data") / "recipes.csv")
     recommender = Recommender.from_hybrid_checkpoints(
         retrieval_checkpoint_path="runs/retrieval/baseline/retrieval_final.pt",
-        ranker_model_path="runs/ranking/improved-features/ranker.pkl",
+        ranker_model_path="runs/ranking/very-advanced-features/ranker.pkl",
         vector_store_path="data/chroma",
         feature_store_path="data/feature_store.db",
         users_df=users_df,

@@ -56,250 +56,273 @@ def generate_training_data(interactions_df, all_recipe_ids, n_candidates=100, ra
     return full_train
 
 
+# Feature Group Definitions
+FEATURE_GROUP_MAP = {
+    "taste": [
+        "taste_bitterness",
+        "taste_sweetness",
+        "taste_acidity",
+        "taste_body",
+        "strength",
+        "preparation_time_minutes",
+        "difficulty_numeric",
+        "portion_size_ml",
+    ],
+    "taste_diff": [
+        "diff_bitterness",
+        "diff_sweetness",
+        "diff_acidity",
+        "diff_body",
+        "diff_strength",
+        "is_strength_match",
+    ],
+    "taste_match": [
+        "taste_cosine_similarity",
+        "taste_euclidean_distance",
+        "taste_manhattan_distance",
+        "taste_diff_mean",
+        "taste_weighted_similarity",
+    ],
+    "user_agg": [
+        "user_taste_pref_sum",
+        "user_taste_pref_mean",
+        "user_taste_pref_std",
+        "user_taste_pref_max",
+        "user_taste_pref_min",
+        "user_dominant_taste_value",
+    ],
+    "recipe_agg": [
+        "recipe_taste_sum",
+        "recipe_taste_mean",
+        "recipe_taste_std",
+        "recipe_taste_complexity",
+        "recipe_taste_balance",
+    ],
+    "equipment": [
+        "owned_equipment_count",
+        "required_equipment_count",
+        "equipment_match",
+        "equipment_coverage",
+        "equipment_missing_count",
+        "has_espresso_machine",
+        "has_grinder",
+        "has_milk_frother",
+        "requires_espresso_machine",
+        "requires_milk_frother",
+        "equipment_sophistication_user",
+        "equipment_sophistication_recipe",
+    ],
+    "technical": [
+        "portion_size_match",
+        "portion_size_diff",
+        "portion_size_ratio",
+        "prep_time_acceptable",
+        "prep_time_ratio",
+    ],
+    "tags": [
+        "tags_count",
+        "is_hot",
+        "is_cold",
+        "is_iced",
+        "is_classic",
+        "is_quick",
+        "is_specialty",
+        "is_strong",
+        "is_sweet",
+    ],
+    "dietary": [
+        "dietary_restrictions_count",
+        "is_vegan",
+        "is_lactose_intolerant",
+        "dietary_compatible",
+        "requires_milk",
+    ],
+    "historical": [
+        "user_total_interactions",
+        "user_avg_rating",
+        "user_rating_std",
+        "user_completion_rate",
+        "user_rated_count",
+        "recipe_total_interactions",
+        "recipe_avg_rating",
+        "recipe_rating_std",
+        "recipe_completion_rate",
+        "recipe_popularity_score",
+        "user_tried_similar_count",
+        "user_avg_rating_similar",
+        "similar_recipe_completion_rate",
+    ],
+    "cold_start": ["recipe_global_popularity", "recipe_category_popularity"],
+    "interaction": [
+        "taste_match_x_equipment",
+        "taste_match_x_popularity",
+        "strength_match_x_completion",
+    ],
+    "temporal": [
+        "user_pct_morning",
+        "user_pct_afternoon",
+        "user_pct_evening",
+        "user_pct_night",
+        "user_dominant_time_encoded",
+        "user_pct_weekend",
+        "user_time_consistency",
+        "user_avg_hour_sin",
+        "user_avg_hour_cos",
+    ],
+    "behavioral": [
+        "user_avg_strength_consumed",
+        "user_strength_variety",
+        "user_avg_difficulty_consumed",
+        "user_avg_prep_time_consumed",
+        "user_avg_portion_size_consumed",
+        "user_exploration_ratio",
+    ],
+    "alignment": [
+        "user_strength_alignment",
+        "user_portion_alignment",
+    ],
+    "advanced_cross": [
+        "taste_intensity_cross",
+        "dominant_taste_alignment",
+        "taste_complexity_match",
+        # Temporal × Behavioral crosses
+        "morning_strength_score",
+        "evening_specialty_score",
+        "weekend_exploration_score",
+        "consistency_difficulty_cross",
+        # Equipment crosses
+        "equipment_sophistication_match",
+        "equipment_enables_difficulty",
+        "equipment_specialty_affinity",
+        # Consumed behavior crosses (CRITICAL!)
+        "consumed_strength_match",
+        "consumed_difficulty_match",
+        "consumed_portion_match",
+        "prep_time_comfort",
+        # Alignment crosses
+        "strength_alignment_x_rating",
+        "portion_alignment_x_completion",
+        "overall_alignment_score",
+        # Popularity crosses
+        "popular_aligned_score",
+        "reliable_taste_match",
+        "quality_fit_score",
+        "exploration_novelty_score",
+        # Tag crosses
+        "hot_morning_score",
+        "cold_afternoon_score",
+        "quick_activity_score",
+        "classic_consistency_score",
+        "sweet_preference_match",
+        "strong_tag_strength_match",
+        # Dietary crosses
+        "vegan_compatible_taste",
+        "restricted_simple_score",
+        # Experience crosses
+        "user_experience_level",
+        "experience_difficulty_match",
+        "experienced_explorer",
+        # Quadratic crosses (HIGH IMPACT!)
+        "taste_match_squared",
+        "equipment_taste_squared",
+        "alignment_consumed_product",
+        "rating_completion_taste",
+        # Ratio crosses
+        "stated_consumed_strength_ratio",
+        "picky_user_good_recipe",
+        "popularity_momentum",
+        # Contextual combos
+        "morning_combo_score",
+        "afternoon_combo_score",
+        "evening_combo_score",
+        "weekend_project_score",
+        # Multi-factor crosses
+        "multi_similarity_product",
+        "triple_alignment_score",
+        "strength_consistency_score",
+        "consistent_reliable_match",
+        # Expertise crosses
+        "expert_rarity_affinity",
+        "beginner_popular_affinity",
+    ],
+    "metadata": ["preference_mismatch"],
+}
+
+PRESETS = {
+    "all": list(FEATURE_GROUP_MAP.keys()),
+    "legacy": [
+        "taste",
+        "taste_diff",
+        "taste_match",
+        "user_agg",
+        "recipe_agg",
+        "equipment",
+        "technical",
+        "tags",
+        "dietary",
+        "historical",
+        "cold_start",
+        "interaction",
+        "metadata",
+    ],
+    "fast": [
+        "taste",
+        "taste_diff",
+        "taste_match",
+        "equipment",
+        "technical",
+        "tags",
+        "dietary",
+        "cold_start",
+        "interaction",
+    ],
+}
+
+
 class FeatureEngineer:
-    def __init__(self):
-        """Initialize feature engineer with comprehensive feature list"""
+    def __init__(self, enabled_groups: list[str] | None = None, preset: str | None = None):
+        """
+        Initialize feature engineer with comprehensive feature list
+
+        Args:
+            enabled_groups: List of feature groups to enable (e.g. ['taste', 'equipment'])
+            preset: Predefined set of groups ('all', 'legacy', 'fast')
+        """
+        # Determine enabled groups
+        if preset is not None:
+            if preset not in PRESETS:
+                raise ValueError(f"Unknown preset: {preset}. Available: {list(PRESETS.keys())}")
+            self.enabled_groups = PRESETS[preset]
+        elif enabled_groups is not None:
+            for g in enabled_groups:
+                if g not in FEATURE_GROUP_MAP:
+                    raise ValueError(f"Unknown feature group: {g}")
+            self.enabled_groups = enabled_groups
+        else:
+            self.enabled_groups = PRESETS["all"]
 
         # Basic taste features
-        self.taste_features = [
-            "taste_bitterness",
-            "taste_sweetness",
-            "taste_acidity",
-            "taste_body",
-            "strength",
-            "preparation_time_minutes",
-            "difficulty_numeric",
-            "portion_size_ml",
-        ]
+        self.taste_features = FEATURE_GROUP_MAP["taste"]
+        self.taste_diff_features = FEATURE_GROUP_MAP["taste_diff"]
+        self.taste_match_features = FEATURE_GROUP_MAP["taste_match"]
+        self.user_agg_features = FEATURE_GROUP_MAP["user_agg"]
+        self.recipe_agg_features = FEATURE_GROUP_MAP["recipe_agg"]
+        self.equipment_features = FEATURE_GROUP_MAP["equipment"]
+        self.technical_features = FEATURE_GROUP_MAP["technical"]
+        self.tag_features = FEATURE_GROUP_MAP["tags"]
+        self.dietary_features = FEATURE_GROUP_MAP["dietary"]
+        self.historical_features = FEATURE_GROUP_MAP["historical"]
+        self.cold_start_features = FEATURE_GROUP_MAP["cold_start"]
+        self.interaction_features = FEATURE_GROUP_MAP["interaction"]
+        self.temporal_features = FEATURE_GROUP_MAP["temporal"]
+        self.behavioral_features = FEATURE_GROUP_MAP["behavioral"]
+        self.alignment_features = FEATURE_GROUP_MAP["alignment"]
+        self.advanced_cross_features = FEATURE_GROUP_MAP["advanced_cross"]
 
-        # Taste difference features
-        self.taste_diff_features = [
-            "diff_bitterness",
-            "diff_sweetness",
-            "diff_acidity",
-            "diff_body",
-            "diff_strength",
-            "is_strength_match",
-        ]
-
-        # Advanced taste match features
-        self.taste_match_features = [
-            "taste_cosine_similarity",
-            "taste_euclidean_distance",
-            "taste_manhattan_distance",
-            "taste_diff_mean",
-            "taste_weighted_similarity",
-        ]
-
-        # User aggregate features
-        self.user_agg_features = [
-            "user_taste_pref_sum",
-            "user_taste_pref_mean",
-            "user_taste_pref_std",
-            "user_taste_pref_max",
-            "user_taste_pref_min",
-            "user_dominant_taste_value",
-        ]
-
-        # Recipe aggregate features
-        self.recipe_agg_features = [
-            "recipe_taste_sum",
-            "recipe_taste_mean",
-            "recipe_taste_std",
-            "recipe_taste_complexity",
-            "recipe_taste_balance",
-        ]
-
-        # Equipment features
-        self.equipment_features = [
-            "owned_equipment_count",
-            "required_equipment_count",
-            "equipment_match",
-            "equipment_coverage",
-            "equipment_missing_count",
-            "has_espresso_machine",
-            "has_grinder",
-            "has_milk_frother",
-            "requires_espresso_machine",
-            "requires_milk_frother",
-            "equipment_sophistication_user",
-            "equipment_sophistication_recipe",
-        ]
-
-        # Technical match features
-        self.technical_features = [
-            "portion_size_match",
-            "portion_size_diff",
-            "portion_size_ratio",
-            "prep_time_acceptable",
-            "prep_time_ratio",
-        ]
-
-        # Tag and category features
-        self.tag_features = [
-            "tags_count",
-            "is_hot",
-            "is_cold",
-            "is_iced",
-            "is_classic",
-            "is_quick",
-            "is_specialty",
-            "is_strong",
-            "is_sweet",
-        ]
-
-        # Dietary features
-        self.dietary_features = [
-            "dietary_restrictions_count",
-            "is_vegan",
-            "is_lactose_intolerant",
-            "dietary_compatible",
-            "requires_milk",
-        ]
-
-        # Historical features (for warm users)
-        self.historical_features = [
-            "user_total_interactions",
-            "user_avg_rating",
-            "user_rating_std",
-            "user_completion_rate",
-            "user_rated_count",
-            "recipe_total_interactions",
-            "recipe_avg_rating",
-            "recipe_rating_std",
-            "recipe_completion_rate",
-            "recipe_popularity_score",
-            "user_tried_similar_count",
-            "user_avg_rating_similar",
-            "similar_recipe_completion_rate",
-        ]
-
-        # Cold start features
-        self.cold_start_features = ["recipe_global_popularity", "recipe_category_popularity"]
-
-        # Feature interactions
-        self.interaction_features = [
-            "taste_match_x_equipment",
-            "taste_match_x_popularity",
-            "strength_match_x_completion",
-        ]
-
-        # === NEW: Temporal features ===
-        self.temporal_features = [
-            "user_pct_morning",
-            "user_pct_afternoon",
-            "user_pct_evening",
-            "user_pct_night",
-            "user_dominant_time_encoded",
-            "user_pct_weekend",
-            "user_time_consistency",
-            "user_avg_hour_sin",
-            "user_avg_hour_cos",
-        ]
-
-        # === NEW: Behavioral features ===
-        self.behavioral_features = [
-            "user_avg_strength_consumed",
-            "user_strength_variety",
-            "user_avg_difficulty_consumed",
-            "user_avg_prep_time_consumed",
-            "user_avg_portion_size_consumed",
-            "user_exploration_ratio",
-        ]
-
-        # === NEW: Preference alignment features ===
-        self.alignment_features = [
-            "user_strength_alignment",
-            "user_portion_alignment",
-        ]
-
-        # === NEW: Advanced Cross Features ===
-        self.advanced_cross_features = [
-            # Taste crosses
-            "taste_intensity_cross",
-            "dominant_taste_alignment",
-            "taste_complexity_match",
-            # Temporal × Behavioral crosses
-            "morning_strength_score",
-            "evening_specialty_score",
-            "weekend_exploration_score",
-            "consistency_difficulty_cross",
-            # Equipment crosses
-            "equipment_sophistication_match",
-            "equipment_enables_difficulty",
-            "equipment_specialty_affinity",
-            # Consumed behavior crosses (CRITICAL!)
-            "consumed_strength_match",
-            "consumed_difficulty_match",
-            "consumed_portion_match",
-            "prep_time_comfort",
-            # Alignment crosses
-            "strength_alignment_x_rating",
-            "portion_alignment_x_completion",
-            "overall_alignment_score",
-            # Popularity crosses
-            "popular_aligned_score",
-            "reliable_taste_match",
-            "quality_fit_score",
-            "exploration_novelty_score",
-            # Tag crosses
-            "hot_morning_score",
-            "cold_afternoon_score",
-            "quick_activity_score",
-            "classic_consistency_score",
-            "sweet_preference_match",
-            "strong_tag_strength_match",
-            # Dietary crosses
-            "vegan_compatible_taste",
-            "restricted_simple_score",
-            # Experience crosses
-            "user_experience_level",
-            "experience_difficulty_match",
-            "experienced_explorer",
-            # Quadratic crosses (HIGH IMPACT!)
-            "taste_match_squared",
-            "equipment_taste_squared",
-            "alignment_consumed_product",
-            "rating_completion_taste",
-            # Ratio crosses
-            "stated_consumed_strength_ratio",
-            "picky_user_good_recipe",
-            "popularity_momentum",
-            # Contextual combos
-            "morning_combo_score",
-            "afternoon_combo_score",
-            "evening_combo_score",
-            "weekend_project_score",
-            # Multi-factor crosses
-            "multi_similarity_product",
-            "triple_alignment_score",
-            "strength_consistency_score",
-            "consistent_reliable_match",
-            # Expertise crosses
-            "expert_rarity_affinity",
-            "beginner_popular_affinity",
-        ]
-
-        # All features combined
-        self.feature_cols = (
-            self.taste_features
-            + self.taste_diff_features
-            + self.taste_match_features
-            + self.user_agg_features
-            + self.recipe_agg_features
-            + self.equipment_features
-            + self.technical_features
-            + self.tag_features
-            + self.dietary_features
-            + self.historical_features
-            + self.cold_start_features
-            + self.interaction_features
-            + self.temporal_features
-            + self.behavioral_features
-            + self.alignment_features
-            + self.advanced_cross_features  # NEW!
-            + ["preference_mismatch"]
-        )
+        # All features combined based on enabled groups
+        self.feature_cols = []
+        for group in self.enabled_groups:
+            self.feature_cols.extend(FEATURE_GROUP_MAP[group])
 
         # Precomputed stats (will be filled in fit())
         self.user_stats = None
@@ -308,7 +331,9 @@ class FeatureEngineer:
         self.user_temporal_behavioral_stats = None
 
     @classmethod
-    def from_feature_store(cls, db_path: str) -> "FeatureEngineer":
+    def from_feature_store(
+        cls, db_path: str, enabled_groups: list[str] | None = None, preset: str | None = None
+    ) -> "FeatureEngineer":
         """
         Load FeatureEngineer with pre-computed stats from SQLite feature store.
 
@@ -316,13 +341,15 @@ class FeatureEngineer:
 
         Args:
             db_path: Path to SQLite feature store database
+            enabled_groups: List of feature groups to enable
+            preset: Predefined set of groups
 
         Returns:
             FeatureEngineer with loaded stats, ready for generate()
         """
         from coffee_recipe_recommender.db.feature_store import FeatureStore
 
-        fe = cls()
+        fe = cls(enabled_groups=enabled_groups, preset=preset)
         store = FeatureStore(db_path)
         fe.user_stats, fe.recipe_stats, fe.user_temporal_behavioral_stats, fe.global_stats = store.load_stats()
         return fe
@@ -345,8 +372,13 @@ class FeatureEngineer:
         print("🔧 Computing global statistics...")
         self._compute_global_stats(users_df, recipes_df, train_interactions_df)
 
-        print("⏰ Computing temporal and behavioral statistics...")
-        self._compute_temporal_behavioral_stats(users_df, recipes_df, train_interactions_df)
+        # Only compute temporal/behavioral stats if needed
+        needs_temporal = any(
+            g in self.enabled_groups for g in ["temporal", "behavioral", "alignment", "advanced_cross"]
+        )
+        if needs_temporal:
+            print("⏰ Computing temporal and behavioral statistics...")
+            self._compute_temporal_behavioral_stats(users_df, recipes_df, train_interactions_df)
 
         print("✅ Feature engineering fit complete!")
 
@@ -1143,17 +1175,29 @@ class FeatureEngineer:
                 df[col] = 0
 
         # 7. Add temporal and behavioral features
-        if self.user_temporal_behavioral_stats is not None:
-            df = self._add_temporal_behavioral_features(df)
-        else:
-            for col in self.temporal_features + self.behavioral_features + self.alignment_features:
-                df[col] = 0
+        if any(g in self.enabled_groups for g in ["temporal", "behavioral", "alignment", "advanced_cross"]):
+            # Robust check: do we actually have temporal/behavioral stats?
+            has_stats = (
+                self.user_temporal_behavioral_stats is not None
+                and len(self.user_temporal_behavioral_stats.columns) > 1
+            )
+            if has_stats:
+                df = self._add_temporal_behavioral_features(df)
+            else:
+                for col in self.temporal_features + self.behavioral_features + self.alignment_features:
+                    df[col] = 0
 
         # 8. Add feature interactions
-        df = self._add_feature_interactions(df)
+        if "interaction" in self.enabled_groups:
+            # Check for dependencies (like taste_cosine_similarity)
+            if "taste_cosine_similarity" in df.columns:
+                df = self._add_feature_interactions(df)
 
         # 9. Add advanced cross features
-        df = self._add_advanced_cross_features(df)
+        if "advanced_cross" in self.enabled_groups:
+            # Robust check: skip if key dependencies are missing (e.g. from temporal/behavioral stats)
+            if "user_pct_morning" in df.columns:
+                df = self._add_advanced_cross_features(df)
 
         # 10. Add preference mismatch (from original code)
         df["preference_mismatch"] = 0  # Placeholder

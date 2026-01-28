@@ -33,6 +33,8 @@ class HybridRecommenderModel:
         cold_start_encoder: Any = None,
         feature_store_path: Path | str | None = None,
         feature_subset: list[str] | None = None,
+        enabled_groups: list[str] | None = None,
+        preset: str | None = None,
     ):
         """
         Initialize hybrid model.
@@ -50,6 +52,8 @@ class HybridRecommenderModel:
             device: Device for inference
             feature_store_path: Optional path to SQLite feature store for pre-computed stats
             feature_subset: Optional list of feature names to use (for testing reduced feature sets)
+            enabled_groups: List of feature groups to enable
+            preset: Predefined set of groups
         """
         self.retrieval_model = retrieval_model.to(device).eval()
         self.ranking_model = ranking_model
@@ -65,9 +69,11 @@ class HybridRecommenderModel:
 
         # Load feature engineer from SQLite if path provided, otherwise create empty
         if feature_store_path is not None:
-            self.feature_engineer = FeatureEngineer.from_feature_store(str(feature_store_path))
+            self.feature_engineer = FeatureEngineer.from_feature_store(
+                str(feature_store_path), enabled_groups=enabled_groups, preset=preset
+            )
         else:
-            self.feature_engineer = FeatureEngineer()
+            self.feature_engineer = FeatureEngineer(enabled_groups=enabled_groups, preset=preset)
 
         self.feature_subset = feature_subset
         self.cold_start_encoder = cold_start_encoder.to(device) if cold_start_encoder is not None else None

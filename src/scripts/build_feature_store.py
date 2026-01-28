@@ -18,6 +18,18 @@ def parse_args() -> argparse.Namespace:
         default=Path("data/feature_store.db"),
         help="Output path for SQLite feature store",
     )
+    parser.add_argument(
+        "--feature-groups",
+        type=str,
+        nargs="+",
+        help="List of feature groups to enable",
+    )
+    parser.add_argument(
+        "--preset",
+        type=str,
+        choices=["all", "legacy", "fast"],
+        help="Feature selection preset",
+    )
     return parser.parse_args()
 
 
@@ -36,8 +48,8 @@ def main() -> None:
 
     print(f"📊 Users: {len(users)}, Recipes: {len(recipes)}, Interactions: {len(train_interactions)}")
 
-    print("🔧 Fitting FeatureEngineer...")
-    fe = FeatureEngineer()
+    print(f"🔧 Fitting FeatureEngineer(preset={args.preset}, groups={args.feature_groups})...")
+    fe = FeatureEngineer(enabled_groups=args.feature_groups, preset=args.preset)
     fe.fit(users, recipes, train_interactions)
 
     print("💾 Saving to feature store...")
@@ -47,7 +59,9 @@ def main() -> None:
     print(f"✅ Feature store built at {args.output}")
     print(f"   - user_stats: {len(fe.user_stats)} rows")
     print(f"   - recipe_stats: {len(fe.recipe_stats)} rows")
-    print(f"   - user_temporal_behavioral_stats: {len(fe.user_temporal_behavioral_stats)} rows")
+    if fe.user_temporal_behavioral_stats is not None:
+        print(f"   - user_temporal_behavioral_stats: {len(fe.user_temporal_behavioral_stats)} rows")
+    print(f"   - total_features: {len(fe.feature_cols)}")
 
 
 if __name__ == "__main__":

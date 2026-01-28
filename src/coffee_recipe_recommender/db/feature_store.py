@@ -85,8 +85,6 @@ class FeatureStore:
             raise ValueError("FeatureEngineer has no user_stats. Call fit() first.")
         if feature_engineer.recipe_stats is None:
             raise ValueError("FeatureEngineer has no recipe_stats. Call fit() first.")
-        if feature_engineer.user_temporal_behavioral_stats is None:
-            raise ValueError("FeatureEngineer has no user_temporal_behavioral_stats. Call fit() first.")
         if feature_engineer.global_stats is None:
             raise ValueError("FeatureEngineer has no global_stats. Call fit() first.")
 
@@ -96,9 +94,17 @@ class FeatureStore:
         try:
             feature_engineer.user_stats.to_sql("user_stats", conn, if_exists="replace", index=False)
             feature_engineer.recipe_stats.to_sql("recipe_stats", conn, if_exists="replace", index=False)
-            feature_engineer.user_temporal_behavioral_stats.to_sql(
-                "user_temporal_behavioral_stats", conn, if_exists="replace", index=False
-            )
+
+            if feature_engineer.user_temporal_behavioral_stats is not None:
+                feature_engineer.user_temporal_behavioral_stats.to_sql(
+                    "user_temporal_behavioral_stats", conn, if_exists="replace", index=False
+                )
+            else:
+                # Create empty table to satisfy load_stats
+                pd.DataFrame(columns=["user_id"]).to_sql(
+                    "user_temporal_behavioral_stats", conn, if_exists="replace", index=False
+                )
+
             # Save global_stats as a single-row table with JSON
             global_stats_df = pd.DataFrame([{"data": json.dumps(feature_engineer.global_stats)}])
             global_stats_df.to_sql("global_stats", conn, if_exists="replace", index=False)

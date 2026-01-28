@@ -26,12 +26,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--n-candidates", type=int, default=50, help="Number of candidates to generate per user")
     parser.add_argument("--optuna-trials", type=int, default=20, help="Number of Optuna tuning trials")
 
-    # Hardware
+    # Feature selection
     parser.add_argument(
-        "--device",
+        "--feature-groups",
         type=str,
-        default="cuda" if __name__ != "__main__" else "cpu",
-        help="Device (unused but for consistency)",
+        nargs="+",
+        help="List of feature groups to enable",
+    )
+    parser.add_argument(
+        "--preset",
+        type=str,
+        choices=["all", "legacy", "fast"],
+        help="Feature selection preset",
     )
 
     return parser.parse_args()
@@ -49,11 +55,11 @@ def main():
     train_df = generate_training_data(train_interactions, all_recipes, n_candidates=args.n_candidates)
     val_df = generate_training_data(val_interactions, all_recipes, n_candidates=args.n_candidates)
 
-    print("🛠 Generating features...")
-    fe = FeatureEngineer()
+    print(f"🛠 Generating features (preset={args.preset}, groups={args.feature_groups})...")
+    fe = FeatureEngineer(enabled_groups=args.feature_groups, preset=args.preset)
     fe.fit(users, recipes, train_interactions)
-    X = fe.generate(train_df, users, recipes, train_interactions_df=train_interactions, verbose=True)
-    X_val = fe.generate(val_df, users, recipes, train_interactions_df=train_interactions, verbose=True)
+    X = fe.generate(train_df, users, recipes, train_interactions_df=train_interactions)
+    X_val = fe.generate(val_df, users, recipes, train_interactions_df=train_interactions)
 
     y = train_df["relevance"].astype(int)
     y_val = val_df["relevance"].astype(int)
