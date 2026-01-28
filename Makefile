@@ -59,6 +59,14 @@ build-feature-store: ## Build SQLite feature store from training data
 		--data-dir data \
 		--output data/feature_store.db
 
+.PHONY: build-vector-store
+build-vector-store: ## Build ChromaDB vector store from embeddings
+	uv run python src/scripts/build_vector_store.py \
+		--embeddings runs/retrieval/baseline/recipe_embeddings.npy \
+		--checkpoint runs/retrieval/baseline/retrieval_final.pt \
+		--output-dir data/chroma \
+		--reset
+
 .PHONY: eval-retrieval
 eval-retrieval: ## Evaluate retrieval model on validation set (warm users)
 	uv run python src/scripts/evaluate_retrieval.py \
@@ -96,6 +104,10 @@ eval-hybrid-cold: ## Evaluate hybrid model on cold-start users
 		--feature-store data/feature_store.db \
 		--mode hybrid \
 		--eval-split val_cold
+
+.PHONY: run-app
+run-app: ## Run FastAPI application
+	uvicorn src.client.app:app --reload
 
 .PHONY: help
 help: ## Show this help message

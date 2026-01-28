@@ -14,13 +14,16 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument("--checkpoint", type=Path, required=True, help="Path to model checkpoint")
     parser.add_argument("--cold-start-path", type=Path, help="Path to cold-start encoder checkpoint")
-    parser.add_argument("--embeddings", type=Path, required=True, help="Path to recipe embeddings .npy file")
+    parser.add_argument("--embeddings", type=Path, help="Path to recipe embeddings .npy file")
+    parser.add_argument("--vector-store", type=Path, default=Path("data/chroma"), help="Path to ChromaDB vector store")
     parser.add_argument("--data-dir", type=Path, default=Path("data"), help="Directory containing CSV files")
     parser.add_argument(
         "--mode", type=str, choices=["retrieval", "hybrid"], default="retrieval", help="Recommender mode"
     )
     parser.add_argument("--ranker-model", type=Path, help="Path to ranker model (required for hybrid mode)")
-    parser.add_argument("--feature-store", type=Path, help="Path to SQLite feature store (speeds up hybrid mode)")
+    parser.add_argument(
+        "--feature-store", type=Path, default=Path("data/feature_store.db"), help="Path to SQLite feature store"
+    )
     parser.add_argument(
         "--eval-split", type=str, choices=["val", "val_cold"], default="val", help="Evaluation split to use"
     )
@@ -101,7 +104,7 @@ def main() -> None:
         recommender = Recommender.from_retrieval_checkpoint(
             checkpoint_path=args.checkpoint,
             cold_start_path=args.cold_start_path,
-            embeddings_path=args.embeddings,
+            vector_store_path=args.vector_store,
             users_df=users_df,
             device=args.device,
         )
@@ -114,7 +117,7 @@ def main() -> None:
             retrieval_checkpoint_path=args.checkpoint,
             ranker_model_path=args.ranker_model,
             cold_start_path=args.cold_start_path,
-            embeddings_path=args.embeddings,
+            vector_store_path=args.vector_store,
             users_df=users_df,
             recipes_df=recipes_df,
             device=args.device,

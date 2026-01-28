@@ -52,7 +52,7 @@ class LightGBMRankerModel:
         )
 
     def predict(self, X):
-        return self.model.predict(X)
+        return self.model.predict(X, predict_disable_shape_check=True)
 
     def save(self, path):
         joblib.dump(self.model, path)

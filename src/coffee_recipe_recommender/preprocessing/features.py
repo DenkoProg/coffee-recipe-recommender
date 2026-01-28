@@ -1087,7 +1087,15 @@ class FeatureEngineer:
 
         return df
 
-    def generate(self, candidates_df, users_df, recipes_df, train_interactions_df=None, verbose=False):
+    def generate(
+        self,
+        candidates_df,
+        users_df,
+        recipes_df,
+        train_interactions_df=None,
+        verbose=False,
+        feature_subset: list[str] | None = None,
+    ):
         """
         Generate all features for candidate user-recipe pairs
 
@@ -1097,9 +1105,10 @@ class FeatureEngineer:
             recipes_df: Recipes dataframe
             train_interactions_df: Training interactions (optional, for historical features)
             verbose: Whether to print progress messages (default False for faster inference)
+            feature_subset: Optional list of feature names to return. If None, returns all features.
 
         Returns:
-            DataFrame with all features
+            DataFrame with features (all or subset if feature_subset is specified)
         """
 
         if verbose:
@@ -1158,10 +1167,20 @@ class FeatureEngineer:
         # 12. Fill NaN values
         df[self.feature_cols] = df[self.feature_cols].fillna(0)
 
-        if verbose:
-            print(f"✅ Feature generation complete! Shape: {df[self.feature_cols].shape}")
+        # 13. Determine output columns based on feature_subset
+        if feature_subset is not None:
+            # Validate that all requested features exist
+            invalid_features = [f for f in feature_subset if f not in self.feature_cols]
+            if invalid_features:
+                raise ValueError(f"Unknown features in feature_subset: {invalid_features}")
+            output_cols = feature_subset
+        else:
+            output_cols = self.feature_cols
 
-        return df[self.feature_cols]
+        if verbose:
+            print(f"✅ Feature generation complete! Shape: {df[output_cols].shape}")
+
+        return df[output_cols]
 
 
 # Example usage:

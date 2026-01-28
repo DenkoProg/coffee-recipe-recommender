@@ -1,81 +1,91 @@
+"""Build vector store from trained two-tower model embeddings.
+
+This script:
+1. Loads recipe embeddings from a trained two-tower model
+2. Saves them to ChromaDB for fast similarity search during inference
+
+Usage:
+    uv run python src/scripts/build_vector_store.py \
+        --embeddings runs/two_tower/best/recipe_embeddings.npy \
+        --checkpoint runs/two_tower/best/two_tower_model.pt \
+        --output-dir data/chroma
+"""
+
 import argparse
+import pathlib
 from pathlib import Path
 
-from coffee_recipe_recommender.db.chroma_store import init_collection, upsert_embeddings
-from coffee_recipe_recommender.preprocessing.embeddings import load_embedding_bundle
+import numpy as np
+import torch
+
+from coffee_recipe_recommender.db.vector_store import VectorStore
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Initialize a Chroma collection with precomputed embeddings.")
+    parser = argparse.ArgumentParser(description="Build vector store from embeddings.")
+
     parser.add_argument(
-        "--embeddings-path",
+        "--embeddings",
         type=Path,
         required=True,
-        help="Path to .npy embeddings file.",
+        help="Path to recipe embeddings .npy file",
     )
     parser.add_argument(
-        "--csv-path",
+        "--checkpoint",
         type=Path,
-        default=Path("data/recipes.csv"),
-        help="Recipes CSV (must include recipe_id; description is used as document if present).",
+        required=True,
+        help="Path to two-tower model checkpoint (for idx_to_recipe mapping)",
     )
     parser.add_argument(
-        "--persist-dir",
+        "--output-dir",
         type=Path,
         default=Path("data/chroma"),
-        help="Directory where Chroma persists data.",
+        help="Output directory for ChromaDB",
     )
     parser.add_argument(
         "--collection-name",
         type=str,
-        default="recipes",
-        help="Chroma collection name.",
-    )
-    parser.add_argument(
-        "--distance",
-        type=str,
-        choices=["cosine", "l2", "ip"],
-        default="cosine",
-        help="Vector distance function for HNSW.",
-    )
-    parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=256,
-        help="Batch size for upsert.",
+        default="recipe_embeddings",
+        help="Name of ChromaDB collection",
     )
     parser.add_argument(
         "--reset",
         action="store_true",
-        help="Delete existing collection before inserting.",
+        help="Reset (delete) existing collection before saving",
     )
+
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    bundle = load_embedding_bundle(
-        embeddings_path=args.embeddings_path,
-        recipes_csv_path=args.csv_path,
-    )
 
-    collection = init_collection(
-        persist_dir=args.persist_dir,
-        collection_name=args.collection_name,
-        distance=args.distance,
-        reset=args.reset,
-    )
+    print("📂 Loading embeddings...")
+    embeddings = np.load(args.embeddings)
+    print(f"   Shape: {embeddings.shape}")
 
-    upsert_embeddings(
-        collection,
-        ids=bundle.ids,
-        embeddings=bundle.embeddings,
-        metadatas=bundle.metadatas,
-        documents=bundle.documents,
-        batch_size=args.batch_size,
-    )
+    print("📂 Loading checkpoint for ID mapping...")
+    with torch.serialization.safe_globals([pathlib.PosixPath]):
+        checkpoint = torch.load(args.checkpoint, map_location="cpu")
+    idx_to_recipe = checkpoint["idx_to_recipe"]
+    print(f"   Found {len(idx_to_recipe)} recipe IDs")
 
-    print(f"Loaded {len(bundle.ids)} embeddings into collection '{args.collection_name}' at {args.persist_dir}.")
+    # Create ID list in index order
+    ids = [idx_to_recipe[i] for i in range(len(idx_to_recipe))]
+
+    if len(ids) != embeddings.shape[0]:
+        raise ValueError(f"Mismatch: {len(ids)} recipe IDs but {embeddings.shape[0]} embeddings")
+
+    # Build metadata (optional - add recipe info here if needed)
+    metadatas = [{"idx": i, "recipe_id": rid} for i, rid in enumerate(ids)]
+
+    print(f"💾 Saving to vector store at {args.output_dir}...")
+    store = VectorStore(args.output_dir, args.collection_name)
+    store.save(embeddings, ids, metadatas=metadatas, reset=args.reset)
+
+    # Verify
+    count = store.count()
+    print(f"✅ Vector store built: {count} embeddings")
 
 
 if __name__ == "__main__":
