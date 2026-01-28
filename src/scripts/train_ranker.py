@@ -52,8 +52,8 @@ def main():
     print("🛠 Generating features...")
     fe = FeatureEngineer()
     fe.fit(users, recipes, train_interactions)
-    X = fe.generate(train_df, users, recipes, train_interactions_df=train_interactions)
-    X_val = fe.generate(val_df, users, recipes, train_interactions_df=train_interactions)
+    X = fe.generate(train_df, users, recipes, train_interactions_df=train_interactions, verbose=True)
+    X_val = fe.generate(val_df, users, recipes, train_interactions_df=train_interactions, verbose=True)
 
     y = train_df["relevance"].astype(int)
     y_val = val_df["relevance"].astype(int)

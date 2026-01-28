@@ -131,6 +131,7 @@ class Recommender:
         candidate_size: int = 50,
         device: str = "cpu",
         cold_start_path: Path | None = None,
+        feature_store_path: Path | str | None = None,
     ) -> "Recommender":
         """Load hybrid recommender from retrieval + ranking checkpoints."""
         with torch.serialization.safe_globals([pathlib.PosixPath]):
@@ -175,6 +176,7 @@ class Recommender:
             candidate_size=candidate_size,
             device=device,
             cold_start_encoder=cs_encoder,
+            feature_store_path=feature_store_path,
         )
 
         return cls(model=hybrid)

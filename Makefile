@@ -53,6 +53,12 @@ train-cold-start: ## Train cold-start encoder for zero-history users
 train-all: split-data train-retrieval train-ranker train-cold-start ## Train all models (split → retrieval → ranker → cold-start)
 	@echo "✅ All models trained successfully!"
 
+.PHONY: build-feature-store
+build-feature-store: ## Build SQLite feature store from training data
+	uv run python src/scripts/build_feature_store.py \
+		--data-dir data \
+		--output data/feature_store.db
+
 .PHONY: eval-retrieval
 eval-retrieval: ## Evaluate retrieval model on validation set (warm users)
 	uv run python src/scripts/evaluate_retrieval.py \
@@ -76,6 +82,7 @@ eval-hybrid: ## Evaluate hybrid model on validation set (warm users)
 		--checkpoint runs/retrieval/baseline/retrieval_final.pt \
 		--embeddings runs/retrieval/baseline/recipe_embeddings.npy \
 		--ranker-model runs/ranking/very-advanced-features/ranker.pkl \
+		--feature-store data/feature_store.db \
 		--mode hybrid \
 		--eval-split val
 
@@ -86,6 +93,7 @@ eval-hybrid-cold: ## Evaluate hybrid model on cold-start users
 		--embeddings runs/retrieval/baseline/recipe_embeddings.npy \
 		--cold-start-path runs/retrieval/cold_encoder_baseline/cold_encoder.pt \
 		--ranker-model runs/ranking/very-advanced-features/ranker.pkl \
+		--feature-store data/feature_store.db \
 		--mode hybrid \
 		--eval-split val_cold
 

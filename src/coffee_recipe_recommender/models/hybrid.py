@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -30,6 +31,7 @@ class HybridRecommenderModel:
         candidate_size: int = 100,
         device: str = "cpu",
         cold_start_encoder: Any = None,
+        feature_store_path: Path | str | None = None,
     ):
         """
         Initialize hybrid model.
@@ -45,6 +47,7 @@ class HybridRecommenderModel:
             recipes_df: Recipes DataFrame with features
             candidate_size: Number of candidates from retrieval stage
             device: Device for inference
+            feature_store_path: Optional path to SQLite feature store for pre-computed stats
         """
         self.retrieval_model = retrieval_model.to(device).eval()
         self.ranking_model = ranking_model
@@ -57,7 +60,13 @@ class HybridRecommenderModel:
         self.candidate_size = candidate_size
         self.device = device
         self.use_features = retrieval_model.user_tower.use_features
-        self.feature_engineer = FeatureEngineer()
+
+        # Load feature engineer from SQLite if path provided, otherwise create empty
+        if feature_store_path is not None:
+            self.feature_engineer = FeatureEngineer.from_feature_store(str(feature_store_path))
+        else:
+            self.feature_engineer = FeatureEngineer()
+
         self.cold_start_encoder = cold_start_encoder.to(device) if cold_start_encoder is not None else None
 
     def _get_equipment_compatible_recipes(self, user_id: str) -> set[int]:

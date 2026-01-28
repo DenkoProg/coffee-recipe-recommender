@@ -20,6 +20,7 @@ def parse_args() -> argparse.Namespace:
         "--mode", type=str, choices=["retrieval", "hybrid"], default="retrieval", help="Recommender mode"
     )
     parser.add_argument("--ranker-model", type=Path, help="Path to ranker model (required for hybrid mode)")
+    parser.add_argument("--feature-store", type=Path, help="Path to SQLite feature store (speeds up hybrid mode)")
     parser.add_argument(
         "--eval-split", type=str, choices=["val", "val_cold"], default="val", help="Evaluation split to use"
     )
@@ -107,6 +108,8 @@ def main() -> None:
     else:  # hybrid
         if not args.ranker_model:
             raise ValueError("--ranker-model is required for hybrid mode")
+        if args.feature_store:
+            print(f"  with feature store from {args.feature_store}...")
         recommender = Recommender.from_hybrid_checkpoints(
             retrieval_checkpoint_path=args.checkpoint,
             ranker_model_path=args.ranker_model,
@@ -115,6 +118,7 @@ def main() -> None:
             users_df=users_df,
             recipes_df=recipes_df,
             device=args.device,
+            feature_store_path=args.feature_store,
         )
 
     # Generate recommendations

@@ -307,6 +307,26 @@ class FeatureEngineer:
         self.global_stats = None
         self.user_temporal_behavioral_stats = None
 
+    @classmethod
+    def from_feature_store(cls, db_path: str) -> "FeatureEngineer":
+        """
+        Load FeatureEngineer with pre-computed stats from SQLite feature store.
+
+        This is much faster than calling fit() as it skips all computation.
+
+        Args:
+            db_path: Path to SQLite feature store database
+
+        Returns:
+            FeatureEngineer with loaded stats, ready for generate()
+        """
+        from coffee_recipe_recommender.db.feature_store import FeatureStore
+
+        fe = cls()
+        store = FeatureStore(db_path)
+        fe.user_stats, fe.recipe_stats, fe.user_temporal_behavioral_stats, fe.global_stats = store.load_stats()
+        return fe
+
     def fit(self, users_df, recipes_df, train_interactions_df):
         """
         Precompute statistics from training data
@@ -1067,7 +1087,7 @@ class FeatureEngineer:
 
         return df
 
-    def generate(self, candidates_df, users_df, recipes_df, train_interactions_df=None):
+    def generate(self, candidates_df, users_df, recipes_df, train_interactions_df=None, verbose=False):
         """
         Generate all features for candidate user-recipe pairs
 
@@ -1076,12 +1096,14 @@ class FeatureEngineer:
             users_df: Users dataframe
             recipes_df: Recipes dataframe
             train_interactions_df: Training interactions (optional, for historical features)
+            verbose: Whether to print progress messages (default False for faster inference)
 
         Returns:
             DataFrame with all features
         """
 
-        print("🚀 Starting feature generation...")
+        if verbose:
+            print("🚀 Starting feature generation...")
 
         # 1. Clean column names
         users_df.columns = users_df.columns.str.strip()
@@ -1095,63 +1117,49 @@ class FeatureEngineer:
         recipes_df["recipe_id"] = recipes_df["recipe_id"].astype(str)
 
         # 3. Add user features
-        print("📊 Adding user features...")
         df = self._add_user_features(candidates_df.copy(), users_df.copy())
 
         # 4. Add recipe features
-        print("📊 Adding recipe features...")
         df = self._add_recipe_features(df, recipes_df.copy())
 
         # 5. Add interaction features
-        print("🔗 Adding interaction features...")
         df = self._add_interaction_features(df)
 
         # 6. Add historical features (if fit was called)
         if self.user_stats is not None and self.recipe_stats is not None:
-            print("📈 Adding historical features...")
             df = self._add_historical_features(df)
         else:
-            print("⚠️  Skipping historical features (call fit() first)")
             # Add placeholder columns
             for col in self.historical_features:
                 df[col] = 0
 
-        # 7. NEW: Add temporal and behavioral features
+        # 7. Add temporal and behavioral features
         if self.user_temporal_behavioral_stats is not None:
-            print("⏰ Adding temporal and behavioral features...")
             df = self._add_temporal_behavioral_features(df)
         else:
-            print("⚠️  Skipping temporal/behavioral features (call fit() first)")
             for col in self.temporal_features + self.behavioral_features + self.alignment_features:
                 df[col] = 0
 
         # 8. Add feature interactions
-        print("🔀 Adding feature interactions...")
         df = self._add_feature_interactions(df)
 
-        # 8.5. NEW: Add ADVANCED CROSS FEATURES!
-        print("🔥 Adding 47 advanced cross features...")
+        # 9. Add advanced cross features
         df = self._add_advanced_cross_features(df)
 
-        # 9. Add preference mismatch (from original code)
+        # 10. Add preference mismatch (from original code)
         df["preference_mismatch"] = 0  # Placeholder
 
-        # 10. Ensure all feature columns exist
-        print("🧹 Finalizing features...")
+        # 11. Ensure all feature columns exist
         missing_cols = [c for c in self.feature_cols if c not in df.columns]
         if missing_cols:
-            print(f"⚠️  Creating missing columns: {missing_cols[:5]}...")
             for c in missing_cols:
                 df[c] = 0.0
 
-        # 11. Fill NaN values
+        # 12. Fill NaN values
         df[self.feature_cols] = df[self.feature_cols].fillna(0)
 
-        print(f"✅ Feature generation complete! Shape: {df[self.feature_cols].shape}")
-        print(f"📋 Total features: {len(self.feature_cols)}")
-        print("🆕 New temporal/behavioral: 17 features")
-        print("🔥 NEW advanced cross: 47 features")
-        print("🎯 TOTAL: ~147 features!")
+        if verbose:
+            print(f"✅ Feature generation complete! Shape: {df[self.feature_cols].shape}")
 
         return df[self.feature_cols]
 
