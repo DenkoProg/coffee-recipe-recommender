@@ -1,0 +1,35 @@
+# junk
+.venv/
+__pycache__/
+*.pyc
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# big dev stuff
+notebooks/
+tests/
+logs/
+tmp/
+dist/
+build/
+*.zip
+*.parquet
+*.csv
+*.pkl
+*.joblib
+
+# python/node caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.cache/
+node_modules/
+
+# keep runtime assets (uncomment if you have them)
+!src/**
+!templates/**
+!static/**
+!images/**
+!data/**   # only if small and needed
