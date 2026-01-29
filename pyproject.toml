@@ -1,7 +1,6 @@
 [project]
 name = "coffee-recipe-recommender"
 version = "0.1.0"
-readme = "README.md"
 requires-python = "==3.10.0"
 
 dependencies = [
@@ -10,14 +9,12 @@ dependencies = [
     "rootutils",
     "matplotlib",
     "pandas>=2.0.0",
-    "torch>=2.0.0",
     "scikit-learn>=1.3.0",
     "pydantic>=2.0.0",
     "tqdm>=4.65.0",
     "lightgbm>=4.6.0",
     "fastapi>=0.128.0",
     "uvicorn>=0.40.0",
-    "optuna>=4.7.0",
     "shap>=0.49.1",
 ]
 

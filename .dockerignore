@@ -1,0 +1,11 @@
+.venv
+__pycache__
+*.pyc
+.git
+.vscode
+.idea
+notebooks
+tests
+.env
+.env.*
+uv.lock.tmp
