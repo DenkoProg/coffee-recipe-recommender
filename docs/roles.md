@@ -30,33 +30,42 @@
 - ✅ `db/chroma_store.py` - Chroma wrapper ✅
 - ✅ `scripts/init_chroma.py` - Chroma initialization ✅
 
-### 🚀 Майбутні завдання (Production)
+### ✅ Завершені завдання (Production)
 
-#### Priority 1: Improved Cold-Start ⚠️
-- [ ] **Content-based encoder for new users**
-  - MLP: user features (taste, equipment) → 64-dim embedding
-  - Train supervised: features of warm users → their learned embeddings
-  - Add to `models/retrieval.py` as `ColdStartEncoder`
-  - Integrate seamless fallback in `inference/recommender.py`
-  - **Goal**: NDCG@5 > 0.25 on `interactions_val_cold.csv`
+#### Cold-Start Encoder ✅
+- ✅ **Content-based encoder for new users**
+  - `scripts/train_cold_start_encoder.py` - MLP training pipeline ✅
+  - `ColdStartEncoder` integrated in `models/retrieval.py` ✅
+  - Seamless fallback in `inference/recommender.py` ✅
+  - Makefile target: `make train-cold-start` ✅
 
-#### Priority 2: Chroma Integration for Inference ⚠️
-- [ ] **Replace .npy with Chroma queries**
-  - Modify `inference/recommender.py` to use Chroma instead of NumPy
-  - ANN search for top-K candidates (faster than full cosine scan)
-  - Add equipment metadata filtering in Chroma
-  - Benchmark: Chroma vs NumPy latency
-  - **Goal**: <5ms retrieval stage, scalable to 10K+ recipes
+#### Chroma Integration ✅
+- ✅ **ChromaDB VectorStore for ANN search**
+  - `db/vector_store.py` - VectorStore class with ChromaDB ✅
+  - `scripts/build_vector_store.py` - Build recipe embeddings store ✅
+  - ANN search integrated in `HybridRecommenderModel` ✅
+  - Makefile target: `make build-vector-store` ✅
 
-#### Priority 3: Feature Storage in SQL 💾
-- [ ] **PostgreSQL/SQLite schema for features**
-  - Design schema: `user_features`, `recipe_features`, `interaction_stats`
-  - SQLAlchemy ORM models
-  - Migration script: CSV → SQL
-  - Update `preprocessing/preprocessing.py` to read from SQL
-  - **Goal**: Production-ready feature store, faster access
+#### SQLite Feature Store ✅
+- ✅ **SQLite schema for pre-computed features**
+  - `db/feature_store.py` - FeatureStore class ✅
+  - `scripts/build_feature_store.py` - Build feature database ✅
+  - Tables: user_stats, recipe_stats, temporal_behavioral_stats ✅
+  - Makefile target: `make build-feature-store` ✅
 
-#### Supporting: Training Improvements
+### 🚀 Майбутні завдання (Improvements)
+
+#### Priority 1: PostgreSQL Migration 💾
+- [ ] Migrate from SQLite to PostgreSQL for production
+- [ ] Connection pooling for concurrent requests
+- [ ] Schema migrations with Alembic
+
+#### Priority 2: ONNX Runtime Integration ⚡
+- [ ] Replace PyTorch inference with ONNX Runtime
+- [ ] INT8 quantization for faster inference
+- [ ] Benchmark: target <3ms per user embedding
+
+#### Priority 3: Advanced Training 🧪
 - [ ] Experiment with harder negative sampling
 - [ ] Ablation study: features vs no-features
 - [ ] Hyperparameter tuning for Two-Tower
@@ -97,36 +106,35 @@
   - Recipe embeddings pre-computation ✅
   - Latency tracking in API ✅
 
-### 🚀 Майбутні завдання (Production)
+### ✅ Завершені завдання (Production)
 
-#### Priority 1: End-to-End Hybrid Evaluation 📊ufe0f
-- [ ] **Full pipeline benchmarks**
-  - Evaluate hybrid model on `interactions_val.csv`
-  - Separate retrieval vs ranking contribution
-  - Ablation study: retrieval-only vs hybrid
-  - Compare with baselines (popularity, random)
-  - **Goal**: Document NDCG@5 improvements
+#### Feature Engineering Expansion ✅
+- ✅ **140+ features in 7 groups**
+  - Taste, Equipment, Historical, Temporal, Cross, Discovery, Dietary ✅
+  - Feature presets: "all", "legacy", "fast" ✅
+  - SQLite FeatureStore integration ✅
 
-#### Priority 2: Feature Engineering Improvements 🛠
-- [ ] **SQL-based feature generation**
-  - Migrate `preprocessing/preprocessing.py` to use SQL
-  - Add caching for expensive features (user history stats)
-  - Pre-compute similarity features offline
-  - **Goal**: <20ms feature extraction per user
+#### SHAP Explainability ✅
+- ✅ **Per-recommendation explanations**
+  - `recommend_with_shap()` method in HybridRecommenderModel ✅
+  - Feature grouping for UI in `client/app.py` ✅
+  - Human-readable explanation templates ✅
 
-#### Priority 3: Model Serving Optimization ⚡
-- [ ] **ONNX Runtime integration**
-  - Replace PyTorch with ONNX for retrieval inference
-  - Benchmark latency improvements
-  - INT8 quantization experiments
-  - **Goal**: <3ms per user embedding
+### 🚀 Майбутні завдання (Improvements)
 
-- [ ] **LightGBM optimization**
-  - Treelite compilation (optional)
-  - Batch prediction for multiple users
-  - Profile feature extraction bottlenecks
+#### Priority 1: End-to-End Hybrid Evaluation 📊
+- [ ] Full pipeline benchmarks on `interactions_val.csv`
+- [ ] Ablation study: retrieval-only vs hybrid
+- [ ] Compare with baselines (popularity, random)
+- [ ] Document NDCG@5 improvements
 
-#### Supporting: Experiments
+#### Priority 2: Model Serving Optimization ⚡
+- [ ] ONNX Runtime integration for Two-Tower
+- [ ] INT8 quantization experiments
+- [ ] Treelite compilation for LightGBM
+- [ ] Batch prediction for multiple users
+
+#### Priority 3: Alternative Rankers 🧪
 - [ ] Try XGBoost/CatBoost instead of LightGBM
 - [ ] Neural ranker (DCN, DeepFM) comparison
 - [ ] A/B testing simulation framework
@@ -219,10 +227,10 @@
   - `GET /metrics` - Prometheus-style metrics
 
 #### Priority 3: UI Improvements 🎨
-- [ ] **Explainability features**
-  - Show top features for each recommendation
-  - SHAP waterfall plot (via endpoint)
-  - "Why this recipe?" tooltip
+- ✅ **Explainability features** (DONE)
+  - ✅ SHAP values computed via `recommend_with_shap()`
+  - ✅ Feature grouping for human-readable explanations
+  - ✅ Reasons and tradeoffs in API response
 
 - [ ] **Taste profile visualization**
   - Radar chart: user taste vs recipe taste
@@ -232,10 +240,6 @@
   - Filter by equipment, difficulty, prep time
   - Multi-select equipment filter
   - Difficulty slider
-
-- [ ] **Alternative: Migrate to Streamlit** (optional)
-  - If HTML becomes too complex
-  - Streamlit has built-in charts, faster prototyping
 
 #### Supporting: Load Testing
 - [ ] **Locust/k6 load test**
@@ -279,9 +283,10 @@
 3. **Week 3**: SQL features + Load testing passed
 4. **Week 4**: Production deployment + monitoring
 
-### Phase 7: Explainability (All Together)
-- ❌ Postponed to post-deployment
-- Low priority vs cold-start + deployment
+### Phase 7: Explainability ✅ COMPLETED
+- ✅ SHAP integration in HybridRecommenderModel
+- ✅ Feature grouping for UI explanations
+- ✅ `explain_for_ui()` function in client/app.py
 
 ### Phase 10: Testing (All Together)
 - [ ] Unit tests (pytest) - each member for their modules
@@ -319,10 +324,11 @@
 
 ### Точки синхронізації:
 1. ✅ **MVP Done**: Data + Models + API working
-2. ⚠️ **Cold-start ready**: Денис → Дмитро can evaluate
-3. ⚠️ **Evaluation complete**: Дмитро → Олександр can deploy
-4. ⚠️ **Staging deployed**: Олександр → Team load tests
-5. ⚠️ **Production live**: All → Monitoring + iteration
+2. ✅ **Cold-start ready**: ColdStartEncoder trained and integrated
+3. ✅ **Storage layer**: ChromaDB VectorStore + SQLite FeatureStore
+4. ✅ **Explainability**: SHAP integration complete
+5. ⚠️ **Staging deployed**: Олександр → Docker + Cloud Run
+6. ⚠️ **Production live**: All → Monitoring + iteration
 
 ---
 
@@ -362,34 +368,34 @@
 - ✅ FastAPI + HTML UI
 - ✅ Latency <100ms (per-request model loading)
 
-### 🚀 Production KPIs:
+### ✅ Completed Production KPIs:
 
 **Денис (Cold-Start + Chroma + Features)**:
-- [ ] Cold-start NDCG@5 > 0.25 on `interactions_val_cold.csv`
-- [ ] Chroma integration: <5ms retrieval latency
-- [ ] SQL feature store: <20ms feature extraction
-- [ ] Documentation: Cold-start model card, Chroma setup guide
+- ✅ ColdStartEncoder trained and integrated
+- ✅ ChromaDB VectorStore operational (`data/chroma/`)
+- ✅ SQLite FeatureStore operational (`data/feature_store.db`)
+- ✅ Documentation updated (`explanations.md`, `copilot-instructions.md`)
 
 **Дмитро (Evaluation + Optimization)**:
-- [ ] Full hybrid NDCG@5 > 0.40 on `interactions_val.csv`
-- [ ] Ablation study: retrieval vs hybrid improvement
-- [ ] ONNX latency: <3ms per user embedding
-- [ ] Feature importance report (top 10 features)
+- ✅ 140+ features implemented (7 groups)
+- ✅ SHAP explainability integrated
+- ✅ Feature importance via LightGBM
+- [ ] Full hybrid NDCG@5 > 0.40 evaluation pending
 
 **Олександр (Deployment + API)**:
-- [ ] Docker image built (<500MB)
-- [ ] Cloud Run deployed (staging + production)
-- [ ] API latency: <50ms p95 under load
-- [ ] Load test: 100 concurrent users, no errors
-- [ ] Monitoring: Cloud Logging + alerting setup
-- [ ] Uptime: 99%+ after 1 week
+- ✅ FastAPI + HTML UI working
+- ✅ Explainability in API responses
+- [ ] Docker image (<500MB)
+- [ ] Cloud Run deployment
+- [ ] Load testing
 
-### Team KPIs:
-- [ ] 🎯 **Cold-start NDCG@5 > 0.25**
-- [ ] 🎯 **Warm-user NDCG@5 > 0.40**
-- [ ] 🎯 **Inference latency < 50ms p95**
+### 🚀 Remaining Team KPIs:
+- ✅ 🎯 **SQLite feature store operational**
+- ✅ 🎯 **Chroma for ANN search**
+- ✅ 🎯 **Explainability integrated**
+- [ ] 🎯 **Cold-start NDCG@5 > 0.25** (needs evaluation)
+- [ ] 🎯 **Warm-user NDCG@5 > 0.40** (needs evaluation)
+- [ ] 🎯 **Inference latency < 50ms p95** (current ~67ms)
 - [ ] 🎯 **Production deployed on Cloud Run**
-- [ ] 🎯 **SQL feature store operational**
-- [ ] 🎯 **Chroma for ANN search**
 - [ ] Monitoring and alerting
 - [ ] Load test passed (100 users)

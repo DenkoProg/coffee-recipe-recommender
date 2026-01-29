@@ -97,10 +97,11 @@
   - ✅ Symmetric InfoNCE loss variant
   - ✅ Trained multiple versions (baseline, with features)
 
-- [ ] **2.4** Cold-start user encoder ⚠️ TODO
-  - ❌ Need dedicated MLP for feature-only users
-  - ❌ Train to match warm user embeddings
-  - ⚠️ Current: Falls back to average embedding or fails
+- [x] **2.4** Cold-start user encoder ✅ COMPLETED
+  - ✅ `scripts/train_cold_start_encoder.py` - Training pipeline
+  - ✅ `ColdStartEncoder` integrated in `models/retrieval.py`
+  - ✅ Seamless fallback in `inference/recommender.py`
+  - ✅ Makefile target: `make train-cold-start`
 
 ## Phase 3: Ranking Model (LightGBM) ✅ COMPLETED
 
@@ -204,21 +205,22 @@
   - ✅ Timing in API endpoint (`took_ms` field)
   - ✅ Inline timing in recommender
 
-## Phase 7: Explainability ❌ NOT STARTED
+## Phase 7: Explainability ✅ COMPLETED
 
-- [ ] **7.1** LightGBM feature importance (`inference/explainer.py`) ❌
-  - ❌ Dedicated explainer module
-  - ❌ SHAP integration for individual predictions
-  - ❌ Feature contribution extraction
+- [x] **7.1** LightGBM feature importance ✅
+  - ✅ SHAP integration via `recommend_with_shap()` in HybridRecommenderModel
+  - ✅ TreeExplainer for per-recommendation explanations
+  - ✅ Feature contribution extraction
 
-- [ ] **7.2** Explanation templates ❌
-  - ❌ Human-readable explanations
-  - ❌ Template system for feature descriptions
+- [x] **7.2** Explanation templates ✅
+  - ✅ Human-readable explanations in `client/app.py`
+  - ✅ Feature group mapping (7 groups: Taste, Equipment, Habits, etc.)
+  - ✅ `explain_for_ui()` function with reasons and tradeoffs
 
-- [ ] **7.3** Visualization ❌
-  - ❌ SHAP waterfall plots
-  - ❌ Taste profile radar charts
-  - ❌ Add to API responses
+- [x] **7.3** Visualization ✅
+  - ✅ SHAP waterfall plots via shap library
+  - ⚠️ Taste profile radar charts TODO
+  - ✅ Explanations in API responses
 
 ---
 
@@ -295,57 +297,55 @@ _Skipped for MVP - can be explored later_
 
 ## Phase 12: Production Readiness & Deployment 🚀 PRIORITY
 
-### 12.1 Feature Storage & Caching
+### 12.1 Feature Storage & Caching ✅ MOSTLY COMPLETED
 
-- [ ] **12.1.1** Implement SQL feature storage
-  - ❌ Set up PostgreSQL/SQLite for feature caching
-  - ❌ Schema for user features, recipe features, precomputed similarities
-  - ❌ Migration scripts for existing CSV data
-  - ❌ ORM models (SQLAlchemy) for features
-  - **Why**: Faster feature access, production-ready persistence
+- [x] **12.1.1** Implement SQLite feature storage ✅
+  - ✅ `db/feature_store.py` - FeatureStore class with SQLite
+  - ✅ Schema: user_stats, recipe_stats, temporal_behavioral_stats, global_stats
+  - ✅ `scripts/build_feature_store.py` - Migration from DataFrames
+  - ✅ Makefile target: `make build-feature-store`
 
-- [ ] **12.1.2** Feature caching layer
+- [ ] **12.1.2** Feature caching layer ⚠️ TODO
   - ❌ Redis/in-memory cache for hot features
   - ❌ LRU cache for user embeddings
   - ❌ Cache invalidation strategy
   - **Why**: Sub-10ms feature retrieval
 
-### 12.2 Chroma Integration for Inference
+### 12.2 Chroma Integration for Inference ✅ COMPLETED
 
 - [x] **12.2.1** Chroma store setup ✅
-  - ✅ `db/chroma_store.py` - Chroma wrapper
-  - ✅ `scripts/init_chroma.py` - Initialize collections
+  - ✅ `db/vector_store.py` - VectorStore class with ChromaDB
+  - ✅ `scripts/build_vector_store.py` - Build recipe embeddings store
   - ✅ Recipe embeddings stored in Chroma
+  - ✅ Makefile target: `make build-vector-store`
 
-- [ ] **12.2.2** Use Chroma in inference pipeline ⚠️ TODO
-  - ❌ Replace `.npy` loading with Chroma queries
-  - ❌ ANN search for top-K candidates (faster than full scan)
-  - ❌ Benchmark: Chroma vs NumPy for retrieval stage
-  - **Why**: Scalable to 10K+ recipes, faster ANN search
+- [x] **12.2.2** Use Chroma in inference pipeline ✅
+  - ✅ VectorStore integrated in HybridRecommenderModel
+  - ✅ ANN search via `VectorStore.query()` method
+  - ✅ ChromaDB queries replace .npy loading
 
-- [ ] **12.2.3** Chroma metadata filtering
+- [ ] **12.2.3** Chroma metadata filtering ⚠️ TODO
   - ❌ Add equipment constraints as Chroma metadata
   - ❌ Filter at retrieval stage (before ranking)
   - ❌ Use `where` clauses for equipment compatibility
   - **Why**: Reduce invalid candidates, faster pipeline
 
-### 12.3 Improved Cold-Start Handling
+### 12.3 Cold-Start Handling ✅ COMPLETED
 
-- [ ] **12.3.1** Content-based cold-start encoder
-  - ❌ MLP: user features → embedding space
-  - ❌ Train on warm users (supervised: features → learned embeddings)
-  - ❌ Seamless fallback for new users
-  - **Why**: Current cold-start fails or uses poor heuristics
+- [x] **12.3.1** Content-based cold-start encoder ✅
+  - ✅ `scripts/train_cold_start_encoder.py` - MLP training
+  - ✅ Trained on warm users (features → learned embeddings)
+  - ✅ Seamless fallback for new users in recommender
+  - ✅ Makefile target: `make train-cold-start`
 
-- [ ] **12.3.2** Hybrid cold-start strategy
+- [ ] **12.3.2** Hybrid cold-start strategy ⚠️ TODO
   - ❌ For users with 1-5 interactions: blend collaborative + content
   - ❌ Weight decay from content→collaborative as history grows
   - ❌ Implement weighted ensemble in recommender
   - **Why**: Smooth transition from cold→warm users
 
-- [ ] **12.3.3** Cold-start evaluation
-  - ❌ Dedicated evaluation on `interactions_val_cold.csv`
-  - ❌ Separate metrics for zero-history vs. few-shot users
+- [ ] **12.3.3** Cold-start evaluation ⚠️ TODO
+  - ❌ Formal evaluation on `interactions_val_cold.csv`
   - ❌ Target: NDCG@5 > 0.25 for cold users
 
 ### 12.4 Google Cloud Run Deployment
@@ -407,12 +407,13 @@ _Skipped for MVP - can be explored later_
 ## Critical Path for Deployment
 
 ```
-1. Fix cold-start (12.3.1) → Test on val_cold
-2. Integrate Chroma for inference (12.2.2) → Benchmark
-3. Dockerize (12.4.1) → Local testing
-4. Deploy to Cloud Run (12.4.2) → Staging environment
-5. Load test (12.4.5) → Optimize if needed
-6. Feature storage (12.1.1) → Production migration
+✅ Cold-start encoder (12.3.1) → DONE
+✅ SQLite feature store (12.1.1) → DONE
+✅ Chroma integration (12.2.2) → DONE
+✅ SHAP explainability (7.1-7.3) → DONE
+⚠️ Dockerize (12.4.1) → TODO
+⚠️ Deploy to Cloud Run (12.4.2) → TODO
+⚠️ Load test (12.4.5) → TODO
 ```
 
 ---
