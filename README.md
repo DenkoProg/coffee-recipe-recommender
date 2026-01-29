@@ -34,9 +34,9 @@ Open [http://localhost:8000](http://localhost:8000) for the demo UI.
 
 ## Results
 
-- **NDCG@5**: 0.43 (warm users)
+- **NDCG@5**: 0.80 (warm users)
 - **Latency**: ~67ms end-to-end
-- **Coverage**: >30%
+- **Coverage**: >60%
 
 ## Documentation
 
