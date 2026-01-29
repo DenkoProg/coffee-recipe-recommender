@@ -20,16 +20,13 @@ A hybrid recommendation system for coffee recipes using **Two-Tower retrieval** 
 ## Quick Start
 
 ```bash
-# Clone & install
+# Clone & install (requires Git LFS for data/models)
+git lfs install
 git clone https://github.com/DenkoProg/coffee-recipe-recommender
 cd coffee-recipe-recommender
 make install
 
-# Train models
-make train-retrieval
-make train-ranker
-
-# Run the app
+# Run the app (pre-trained models included)
 make run-app
 ```
 
