@@ -11,6 +11,7 @@
 7. [Cold-Start проблема](#7-cold-start-проблема)
 8. [Повний пайплайн](#8-повний-пайплайн)
 9. [Оптимізація для продакшену](#9-оптимізація-для-продакшену)
+10. [Explainability (Пояснюваність)](#10-explainability-пояснюваність)
 
 ---
 
@@ -700,18 +701,172 @@ similar_ids, distances = store.query(user_embedding, n_results=100)
 
 ---
 
+## 10. Explainability (Пояснюваність)
+
+### Чому пояснюваність важлива?
+
+Пояснення рекомендацій допомагає:
+- **Користувачам** — зрозуміти, чому саме цей рецепт
+- **Розробникам** — відлагоджувати та покращувати модель
+- **Бізнесу** — відповідати вимогам прозорості AI
+
+### SHAP (SHapley Additive exPlanations)
+
+Ми використовуємо **SHAP** для пояснення рішень LightGBM ранкера:
+
+- **TreeExplainer** — спеціалізований пояснювач для tree-based моделей
+- **Shapley values** — теоретично обґрунтований метод розподілу "внеску" кожної ознаки
+
+$$\phi_i = \sum_{S \subseteq N \setminus \{i\}} \frac{|S|!(|N|-|S|-1)!}{|N|!} [f(S \cup \{i\}) - f(S)]$$
+
+Де:
+- $\phi_i$ — SHAP value для ознаки $i$
+- $f(S)$ — передбачення моделі з ознаками $S$
+- $N$ — множина всіх ознак
+
+### Інтеграція в систему
+
+```python
+from coffee_recipe_recommender.inference.recommender import Recommender
+
+# Завантажуємо гібридну модель
+recommender = Recommender.from_hybrid_checkpoints(...)
+
+# Отримуємо рекомендації з SHAP поясненнями
+top_recipes, X_features, shap_values, explainer = recommender.recommend_with_shap(
+    user_id="user_00001",
+    users_df=users_df,
+    recipes_df=recipes_df,
+    train_df=train_df,
+    n=5,
+)
+
+# shap_values — матриця (n_recipes, n_features) з внесками кожної ознаки
+```
+
+### Групування ознак для UI
+
+Для зручного відображення в інтерфейсі, ознаки згруповані за категоріями:
+
+| Група | Ознаки | Пояснення для користувача |
+|-------|--------|---------------------------|
+| **Taste match** | taste_cosine_similarity, taste_diff_*, ... | "Відповідає вашим смаковим вподобанням" |
+| **Equipment fit** | equipment_match, equipment_coverage, ... | "Підходить для вашого обладнання" |
+| **Fits your habits** | user_avg_rating, user_completion_rate, ... | "Підходить під ваші звички" |
+| **Time & context** | morning_combo_score, weekend_exploration_score, ... | "Вдалий вибір для цього часу" |
+| **Discovery & novelty** | exploration_novelty_score, user_exploration_ratio, ... | "Баланс нового та знайомого" |
+| **Quality & popularity** | recipe_avg_rating, recipe_popularity_score, ... | "Популярний/перевірений вибір" |
+| **Dietary compatibility** | dietary_compatible, vegan_compatible_taste, ... | "Відповідає вашим дієтичним вподобанням" |
+
+### API для пояснень
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│  🎯 ПОЯСНЕННЯ РЕКОМЕНДАЦІЇ                                                    │
+│  ════════════════════════════════════════════════════════════════════════    │
+│                                                                              │
+│   Рецепт: "Cappuccino"                                                       │
+│   Score: 4.85                                                                │
+│                                                                              │
+│   ✅ Причини рекомендації (top-3 positive):                                   │
+│   ├─ Taste match: +0.42 — "Відповідає вашим смаковим вподобанням"             │
+│   ├─ Equipment fit: +0.28 — "Підходить для вашого обладнання"                 │
+│   └─ Quality: +0.15 — "Популярний/перевірений вибір"                          │
+│                                                                              │
+│   ⚠️ Можливі компроміси (top-1 negative):                                     │
+│   └─ Time context: -0.08 — "Не оптимальний час для цього напою"               │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Функція пояснення для UI
+
+У `src/client/app.py` реалізована функція `explain_for_ui()`:
+
+```python
+def explain_for_ui(
+    *,
+    recipe_id: str,
+    shap_row: np.ndarray,       # SHAP values для одного рецепту
+    feature_names: list[str],   # Назви ознак
+    base: float,                # Базове значення (середнє)
+    pred: float,                # Фінальне передбачення
+    max_reasons: int = 3,       # Кількість позитивних причин
+    max_tradeoffs: int = 1,     # Кількість негативних пунктів
+) -> dict:
+    """
+    Returns:
+        {
+            "recipe_id": "recipe_cappuccino_001",
+            "score": 4.85,
+            "reasons": [
+                {"group": "Taste match", "impact": 0.42, "text": "..."}
+            ],
+            "tradeoffs": [
+                {"group": "Time context", "impact": -0.08, "text": "..."}
+            ]
+        }
+    """
+```
+
+### Візуалізація SHAP
+
+```python
+import shap
+import matplotlib.pyplot as plt
+
+# Waterfall plot для одного рецепту
+shap.plots.waterfall(shap.Explanation(
+    values=shap_values[0],
+    base_values=explainer.expected_value,
+    feature_names=X_features.columns.tolist(),
+))
+
+# Beeswarm plot для всіх top-N рецептів
+shap.plots.beeswarm(shap.Explanation(
+    values=shap_values,
+    feature_names=X_features.columns.tolist(),
+))
+```
+
+### Feature Importance (глобальний рівень)
+
+LightGBM надає `feature_importance` "з коробки":
+
+```python
+# З моделі
+importance = ranker.model.feature_importance(importance_type='gain')
+
+# Топ-10 ознак
+top_features = sorted(
+    zip(feature_names, importance),
+    key=lambda x: x[1],
+    reverse=True
+)[:10]
+```
+
+Типові топ-ознаки:
+1. `taste_cosine_similarity` — збіг смакових профілів
+2. `equipment_match` — відповідність обладнання
+3. `recipe_avg_rating` — середня оцінка рецепту
+4. `user_avg_rating` — середня оцінка користувача
+5. `taste_match_squared` — квадратичний ефект збігу смаку
+
+---
+
 ## Висновки
 
 Наша система реалізує **state-of-the-art гібридний підхід**:
 
 1. **Two-Tower Retrieval** — ефективний пошук у спільному embedding просторі з InfoNCE loss
-2. **LightGBM Ranking** — точне ранжування з 50+ ознаками та LambdaRank
+2. **LightGBM Ranking** — точне ранжування з 140+ ознаками та LambdaRank
 3. **Cold-Start Encoder** — обробка нових користувачів через content-based MLP
-4. **Production optimizations** — pre-computed embeddings, ONNX, ANN індекси
+4. **Production optimizations** — pre-computed embeddings, ONNX, ANN індекси (ChromaDB)
+5. **Explainability** — SHAP пояснення з групуванням ознак для UI
 
 **Ключові метрики**:
 - NDCG@5 > 0.4 (target)
 - Latency ~67мс end-to-end
 - Coverage > 30%
 
-Система готова до продакшену і може масштабуватися для великих каталогів через ANN індексацію.
+Система готова до продакшену і може масштабуватися для великих каталогів через ANN індексацію та надає прозорі пояснення для кожної рекомендації.
