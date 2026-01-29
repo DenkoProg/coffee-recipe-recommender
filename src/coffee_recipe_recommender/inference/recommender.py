@@ -1,4 +1,6 @@
 import pathlib
+pathlib.PosixPath = pathlib.WindowsPath
+
 from pathlib import Path
 from typing import Any
 
@@ -219,7 +221,7 @@ class Recommender:
             preset: Optional feature selection preset
         """
         with torch.serialization.safe_globals([pathlib.PosixPath]):
-            checkpoint = torch.load(retrieval_checkpoint_path, map_location=device)
+            checkpoint = torch.load(retrieval_checkpoint_path, map_location=device, weights_only=False)
 
         model_args = checkpoint["args"]
 

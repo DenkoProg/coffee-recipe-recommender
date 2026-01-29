@@ -13,6 +13,7 @@ Usage:
 
 import argparse
 import pathlib
+pathlib.PosixPath = pathlib.WindowsPath
 from pathlib import Path
 
 import numpy as np
@@ -66,7 +67,7 @@ def main() -> None:
 
     print("📂 Loading checkpoint for ID mapping...")
     with torch.serialization.safe_globals([pathlib.PosixPath]):
-        checkpoint = torch.load(args.checkpoint, map_location="cpu")
+        checkpoint = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
     idx_to_recipe = checkpoint["idx_to_recipe"]
     print(f"   Found {len(idx_to_recipe)} recipe IDs")
 

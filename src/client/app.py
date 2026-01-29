@@ -13,11 +13,11 @@ from coffee_recipe_recommender.inference.recommender import Recommender
 from coffee_recipe_recommender.training.loaders import load_interactions, load_recipes, load_users
 from src.client.services.recommend_service import RecommendOut, get_info, recommend
 from src.client.services.users_service import UserOut, list_users
+from src.client.services.history_retrieve import HistoryItem, get_user_history
 
 
 app = FastAPI(title="Coffee Recommender API", version="1.0")
 app.mount("/images", StaticFiles(directory="data/images"), name="images")
-
 
 # ---------- Endpoints ----------
 @app.get("/users", response_model=list[UserOut])
@@ -26,6 +26,17 @@ def get_users(limit: int = Query(200, ge=1, le=5000)):
     Returns a list of users (id + username).
     """
     return list_users(limit=limit)
+
+@app.get("/history/{user_id}", response_model=list[HistoryItem])
+def get_history(user_id: str, limit: int = Query(50, ge=1, le=500)):
+    """
+    Return user's interaction history (latest first).
+    Implement get_user_history() in separate file reading interactions_train.csv.
+    """
+    try:
+        return get_user_history(user_id=user_id, limit=limit)  # type: ignore[name-defined]
+    except KeyError:
+        raise HTTPException(status_code=404, detail="user_id not found")
 
 # --- UI-friendly SHAP explanations (no plots) ---
 EQUIPMENT_FEATURES = {
@@ -234,7 +245,7 @@ def get_recommendations(user_id: str, n: int = Query(5, ge=1, le=50)):
             )
 
         # your existing enrichment (name/desc/tags/etc.)
-        recs_info = get_info(top)
+        recs_info = get_info(user_id,top)
 
         # attach UI explanation into each recommendation dict
         for r in recs_info:

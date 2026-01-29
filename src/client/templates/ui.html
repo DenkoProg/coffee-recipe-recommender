@@ -106,65 +106,165 @@
       word-break: break-word;    /* fallback */
     }
 
-  .explain-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 8px;
-  }
+    .explain-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 8px;
+    }
 
-  /* Push question mark to right */
-  .explain-row .score {
-    margin-right: auto;
-  }
+    /* Push question mark to right */
+    .explain-row .place-pill {
+      margin-right: auto;
+    }
 
-  .explain-btn {
-  margin-top: 8px;
-  height: 28px;
-  min-width: 28px;
-  padding: 0px 10px;
-  border-radius: 999px;          /* same pill shape */
-  background: #fcfcfc;
-  color: #111;
-  font-size: 13px;
-  font-weight: 600;
+    .explain-btn {
+      margin-top: 8px;
+      height: 28px;
+      min-width: 28px;
+      padding: 0px 10px;
+      border-radius: 999px;          /* same pill shape */
+      background: #fcfcfc;
+      color: #111;
+      font-size: 13px;
+      font-weight: 600;
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
 
-  border: 1px solid #e6e6e6;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-  cursor: pointer;
-  position: relative;
-}
+      border: 1px solid #e6e6e6;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      cursor: pointer;
+      position: relative;
+    }
 
-/* subtle hover */
-.explain-btn:hover {
-  background: #f3f3f3;
-}
+    /* subtle hover */
+    .explain-btn:hover {
+      background: #f3f3f3;
+    }
 
-  /* Popup */
-  .explain-popup {
-    position: absolute;
-    bottom: 30px;
-    right: 0;
-    width: 260px;
-    background: #fff;
-    border: 1px solid #e5e5e5;
-    border-radius: 12px;
-    padding: 12px;
-    font-size: 13px;
-    color: #111;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
-    display: none;
-    z-index: 50;
-  }
+    /* Popup */
+    .explain-popup {
+      position: absolute;
+      bottom: 30px;
+      right: 0;
+      width: 260px;
+      background: #fff;
+      border: 1px solid #e5e5e5;
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 13px;
+      color: #111;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+      display: none;
+      z-index: 50;
+    }
 
-  /* Hover */
-  .explain-btn:hover .explain-popup {
-    display: block;
-  }
+    /* Hover */
+    .explain-btn:hover .explain-popup {
+      display: block;
+    }
+
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .history-table th, .history-table td {
+      border-top: 1px solid #eee;
+      padding: 10px 6px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .history-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border: 1px solid #e6e6e6;
+      border-radius: 999px;
+      background: #fcfcfc;
+      font-size: 12px;
+    }
+
+    .history-table td:last-child {
+      white-space: nowrap;
+    }
+
+    .history-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .place-pill{
+      margin-top: 8px;
+      height: 28px;
+      padding: 0 12px;
+      border-radius: 999px;
+      background: #fcfcfc;
+      border: 1px solid #e6e6e6;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      display: inline-flex;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .popup-meta{
+      margin-top: 8px;
+      padding: 6px 8px;
+      border-radius: 10px;
+      background: #fafafa;
+      border: 1px solid #eee;
+      font-size: 12px;
+    }
+
+    .warn-badge{
+      height: 28px;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid #f2d38a;
+      background: #fff7e6;
+      color: #6b4e00;
+      font-size: 13px;
+      font-weight: 700;
+
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+
+      position: relative;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    .warn-badge .tip{
+      display: none;
+      position: absolute;
+      left: 0;
+      top: calc(100% + 8px);
+      z-index: 60;
+
+      max-width: 280px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid #e5e5e5;
+      background: #fff;
+      color: #111;
+      font-size: 12px;
+      font-weight: 500;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+      white-space: normal;
+    }
+
+    .warn-badge:hover .tip{ display: block; }
+
+
+    .warn-badge{
+      margin-top: 4px;
+    }
+
 
     code { background: #f2f2f2; padding: 2px 6px; border-radius: 6px; }
   </style>
@@ -203,6 +303,14 @@
     </div>
 
     <div id="results" class="grid"></div>
+    <div class="panel" style="margin-top:14px;">
+      <div class="topbar" style="margin-bottom:10px;">
+        <div style="font-weight:700;">History</div>
+        <div class="small" id="historyMeta"></div>
+      </div>
+      <div id="history" class="small">Select a user to load history.</div>
+    </div>
+
   </div>
 
 <script>
@@ -220,6 +328,60 @@
   const results = document.getElementById("results");
   const statusEl = document.getElementById("status");
   const timingEl = document.getElementById("timing");
+  const historyEl = document.getElementById("history");
+  const historyMetaEl = document.getElementById("historyMeta");
+
+  function renderHistory(items) {
+    if (!items.length) {
+      historyEl.innerHTML = "No interactions in training history for this user.";
+      historyMetaEl.textContent = "";
+      return;
+    }
+
+    historyMetaEl.textContent = `${items.length} latest interactions`;
+
+    historyEl.innerHTML = `
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th style="width:170px;">Time</th>
+            <th>Recipe</th>
+            <th style="width:140px;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map(it => {
+            const rating = (it.rating == null) ? "—" : Number(it.rating).toFixed(1);
+            const done = it.completed ? "completed" : "not completed";
+            return `
+              <tr>
+                <td>${escapeHtml(it.timestamp)}</td>
+                <td><b>${escapeHtml(it.recipe_id)}</b></td>
+                <td>
+                  <span class="history-pill">⭐ ${rating}</span>
+                  <span class="history-pill">${escapeHtml(done)}</span>
+                </td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table>
+    `;
+  }
+
+  async function loadHistory(userId) {
+    historyEl.textContent = "Loading history…";
+    historyMetaEl.textContent = "";
+
+    try {
+      const items = await fetchJson(`/history/${encodeURIComponent(userId)}?limit=50`);
+      renderHistory(items || []);
+    } catch (e) {
+      historyEl.textContent = `Failed to load history: ${e.message}`;
+      historyMetaEl.textContent = "";
+    }
+  }
+
 
   function setStatus(msg) {
     if (!msg) { statusEl.style.display = "none"; statusEl.textContent = ""; return; }
@@ -283,9 +445,48 @@
     return `/images/${recipe.recipe_id}.png`;
   }
 
+  function medalForPlace(place) {
+    const medals = ["🥇", "🥈", "🥉", "🏅", "🎖️", "🏅", "🎖️"]; // extend as you like
+    if (!place || place < 1) return "";
+    return medals[place - 1] || "🏅";
+  }
+
+  function humanEquip(x) {
+    return String(x ?? "").replaceAll("_", " ");
+  }
+
+  function equipList(arr) {
+    const xs = Array.isArray(arr) ? arr : [];
+    return xs.map(humanEquip).join(", ");
+  }
+
+  function renderEquipmentWarning(recipe) {
+    // backend can send either user_equipment_matched or missing_equipment
+    const matched = recipe?.user_equipment_matched;
+    const missingArr = Array.isArray(recipe?.missing_equipment) ? recipe.missing_equipment : [];
+
+    const show = (matched === false) || missingArr.length > 0;
+    if (!show) return "";
+
+    const miss = equipList(missingArr);
+
+    return `
+      <div class="warn-badge">
+        ⚠ Missing equipment
+        <div class="tip">
+          ${miss ? `<b>Missing:</b> ${escapeHtml(miss)}` : `Some required tools are missing`}
+        </div>
+      </div>
+    `;
+  }
+
 function renderCard(recipe) {
   const tags = Array.isArray(recipe.tags) ? recipe.tags : [];
   const equip = Array.isArray(recipe.required_equipment) ? recipe.required_equipment : [];
+  const place = recipe.place ?? null;
+  const medal = medalForPlace(place);
+  const placeLabel = place ? `${medal} #${place}` : "#";
+  const scoreText = (recipe.score != null) ? Number(recipe.score).toFixed(4) : "—";
 
   return `
     <div class="card" style="--img:url('${coffeeImageUrl(recipe)}')">
@@ -295,6 +496,9 @@ function renderCard(recipe) {
 
       <div class="content">
         <div class="title">${escapeHtml(recipe.name || recipe.recipe_id)}</div>
+
+        ${renderEquipmentWarning(recipe)}
+
         <div class="meta"><b>Recipe ID:</b> ${escapeHtml(recipe.recipe_id)}</div>
         ${recipe.description ? `<div class="meta">${escapeHtml(recipe.description)}</div>` : ""}
 
@@ -323,11 +527,12 @@ function renderCard(recipe) {
         ${recipe.score != null
           ? `
             <div class="explain-row">
-              <div class="score">⭐ score: ${Number(recipe.score).toFixed(4)}</div>
+              <div class="place-pill">${escapeHtml(placeLabel)}</div>
 
               <div class="explain-btn">?
                 <div class="explain-popup">
                   <b>Why this coffee?</b>
+                  <div><b>Model score:</b> ${escapeHtml(scoreText)}</div>
                   ${renderWhy(recipe.why_recommended)}
                 </div>
               </div>
@@ -406,10 +611,11 @@ function renderCard(recipe) {
 
       // If backend returns tuples only, we can still show minimal cards.
       // But for full info, backend should enrich each recipe.
-      const normalized = recs.map(r => {
-        if (Array.isArray(r)) return { recipe_id: r[0], score: r[1] };
-        return r;
-      });
+      const normalized = recs.map((r, idx) => {
+        const obj = Array.isArray(r) ? { recipe_id: r[0], score: r[1] } : r;
+        return { ...obj, place: idx + 1 };
+      }); 
+
 
       results.innerHTML = normalized.map(renderCard).join("");
     } catch (e) {
@@ -425,7 +631,14 @@ function renderCard(recipe) {
     results.innerHTML = "";
     setStatus("");
     timingEl.textContent = "";
+
+    if (userSelect.value) loadHistory(userSelect.value);
+    else {
+      historyEl.textContent = "Select a user to load history.";
+      historyMetaEl.textContent = "";
+    }
   });
+
 
   recBtn.addEventListener("click", recommend);
 
