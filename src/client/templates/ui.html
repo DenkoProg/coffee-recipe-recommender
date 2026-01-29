@@ -260,9 +260,162 @@
 
     .warn-badge:hover .tip{ display: block; }
 
-
     .warn-badge{
       margin-top: 4px;
+    }
+
+    .modal-backdrop{
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.35);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal{
+      width: min(720px, calc(100vw - 40px));
+      background: #fff;
+      border: 1px solid #e7e7e7;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.22);
+      overflow: hidden;
+    }
+
+    .modal-head{
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .modal-title{ font-weight: 800; }
+    .modal-body{ padding: 14px; display: grid; gap: 12px; }
+
+    .form-grid{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 680px){
+      .form-grid{ grid-template-columns: 1fr; }
+    }
+
+    .field label{ margin: 0 0 6px; }
+    .field input, .field select{
+      width: 100%;
+    }
+
+    select[multiple]{
+      min-height: 120px;
+      padding: 8px;
+    }
+
+    .modal-actions{
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      border-top: 1px solid #eee;
+      padding: 12px 14px;
+    }
+
+    .btn-secondary{
+      background:#fff !important; color:#111 !important; border:1px solid #d9d9d9 !important;
+    }
+
+    .btn-danger{
+      background:#fff !important; color:#b00020 !important; border:1px solid #f0c0c5 !important;
+    }
+
+    .modal{
+      width: min(720px, calc(100vw - 40px));
+      max-height: calc(100vh - 40px);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-body{
+      padding: 14px;
+      overflow: auto;              /* ✅ scroll inside modal */
+      max-height: calc(100vh - 160px); /* head+actions space */
+    }
+
+    .form-grid{
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); /* ✅ prevents overlap */
+      gap: 12px;
+    }
+
+    .field{ min-width: 0; }        /* ✅ allow shrink */
+    .field input, .field select{
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    @media (max-width: 680px){
+      .form-grid{ grid-template-columns: 1fr; }
+    }
+
+    .checklist{
+      border: 1px solid #d9d9d9;
+      border-radius: 12px;
+      background: #fff;
+      padding: 10px;
+      max-height: 160px;
+      overflow: auto;
+    }
+
+    .checklist .row{
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 6px;
+      border-radius: 10px;
+      margin: 2px 0;
+    }
+
+    .checklist .row:hover{
+      background: #f6f6f6;
+    }
+
+    .checklist input[type="checkbox"]{
+      width: 16px;
+      height: 16px;
+    }
+
+    .search{
+      width: 100%;
+      margin-bottom: 8px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid #d9d9d9;
+    }
+
+    /* when user_id is hidden, make username take the whole row */
+    .field.username-full { grid-column: 1 / -1; }
+
+    .slider-row{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .slider-row input[type="range"]{
+      flex:1;
+    }
+
+    .slider-val{
+      min-width: 52px;
+      text-align: center;
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #fcfcfc;
+      border: 1px solid #e6e6e6;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     }
 
 
@@ -280,10 +433,22 @@
       <div class="row">
         <div style="min-width: 260px; flex: 1;">
           <label for="userSelect">User</label>
-          <select id="userSelect" disabled>
-            <option value="">Loading users…</option>
-          </select>
+
+          <div style="display:flex; gap:10px; align-items:center;">
+            <select id="userSelect" disabled style="flex:1;">
+              <option value="">Loading users…</option>
+            </select>
+
+            <button id="viewProfileBtn" disabled style="white-space:nowrap; background:#fff; color:#111; border:1px solid #d9d9d9;">
+              View profile
+            </button>
+
+            <button id="createUserBtn" style="white-space:nowrap; background:#fff; color:#111; border:1px solid #d9d9d9;">
+              + New user
+            </button>
+          </div>
         </div>
+
 
         <div style="min-width: 120px;">
           <label for="nInput">Top N</label>
@@ -313,6 +478,112 @@
 
   </div>
 
+<div id="userModalBackdrop" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="userModalTitle">User</div>
+      <button id="userModalClose" class="btn-secondary" style="height:34px; padding:0 12px; border-radius:10px;">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field" id="field_user_id">
+          <label>User ID</label>
+          <input id="f_user_id" disabled />
+        </div>
+
+
+        <div class="field" id="field_username">
+          <label>Username</label>
+          <input id="f_username" placeholder="John" />
+        </div>
+
+
+        <div class="field">
+          <label>Owned equipment</label>
+          <input id="equipSearch" class="search" placeholder="Search equipment…" />
+          <div id="equipList" class="checklist"></div>
+        </div>
+
+
+        <div class="field">
+          <label>Available products</label>
+          <input id="prodSearch" class="search" placeholder="Search products…" />
+          <div id="prodList" class="checklist"></div>
+        </div>
+
+        <div class="field">
+          <label>Preferred strength (1-5)</label>
+          <div class="slider-row">
+            <input id="f_preferred_strength" type="range" min="1" max="5" step="1" value="3" />
+            <span class="slider-val" id="v_preferred_strength">3</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Preferred portion size</label>
+          <select id="f_preferred_portion_size">
+            <option value="">—</option>
+            <option value="small">small</option>
+            <option value="medium">medium</option>
+            <option value="large">large</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Taste pref: bitterness (0-1)</label>
+          <div class="slider-row">
+            <input id="f_taste_pref_bitterness" type="range" min="0" max="1" step="0.01" value="0.50" />
+            <span class="slider-val" id="v_taste_pref_bitterness">0.50</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Taste pref: sweetness (0-1)</label>
+          <div class="slider-row">
+            <input id="f_taste_pref_sweetness" type="range" min="0" max="1" step="0.01" value="0.50" />
+            <span class="slider-val" id="v_taste_pref_sweetness">0.50</span>
+          </div>
+
+        </div>
+
+        <div class="field">
+          <label>Taste pref: acidity (0-1)</label>
+          <div class="slider-row">
+            <input id="f_taste_pref_acidity" type="range" min="0" max="1" step="0.01" value="0.50" />
+            <span class="slider-val" id="v_taste_pref_acidity">0.50</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Taste pref: body (0-1)</label>
+          <div class="slider-row">
+            <input id="f_taste_pref_body" type="range" min="0" max="1" step="0.01" value="0.50" />
+            <span class="slider-val" id="v_taste_pref_body">0.50</span>
+          </div>
+
+        </div>
+
+        <div class="field">
+          <label>Dietary restrictions</label>
+          <div id="dietList" class="checklist"></div>
+        </div>
+
+        <div class="field" style="grid-column: 1 / -1;">
+          <label>Account created</label>
+          <input id="f_account_created" placeholder="readonly (set by backend)" />
+          <div class="small">On create, backend can set timestamp automatically.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button id="userModalCancel" class="btn-secondary">Cancel</button>
+      <button id="userModalSubmit">Create</button>
+    </div>
+  </div>
+</div>
+
 <script>
   // -------- CONFIG --------
   // If FastAPI runs on same host/port with static hosting, keep it "".
@@ -330,6 +601,138 @@
   const timingEl = document.getElementById("timing");
   const historyEl = document.getElementById("history");
   const historyMetaEl = document.getElementById("historyMeta");
+  const viewProfileBtn = document.getElementById("viewProfileBtn");
+  const createUserBtn = document.getElementById("createUserBtn");
+
+  const userModalBackdrop = document.getElementById("userModalBackdrop");
+  const userModalTitle = document.getElementById("userModalTitle");
+  const userModalClose = document.getElementById("userModalClose");
+  const userModalCancel = document.getElementById("userModalCancel");
+  const userModalSubmit = document.getElementById("userModalSubmit");
+  const equipSearch = document.getElementById("equipSearch");
+  const prodSearch = document.getElementById("prodSearch");
+  const equipList = document.getElementById("equipList");
+  const prodList = document.getElementById("prodList");
+  const dietList = document.getElementById("dietList");
+
+  // form fields
+  const f_user_id = document.getElementById("f_user_id");
+  const f_username = document.getElementById("f_username");
+  const f_owned_equipment = document.getElementById("f_owned_equipment");
+  const f_available_products = document.getElementById("f_available_products");
+  const f_dietary_restrictions = document.getElementById("f_dietary_restrictions");
+  const f_preferred_strength = document.getElementById("f_preferred_strength");
+  const f_preferred_portion_size = document.getElementById("f_preferred_portion_size");
+  const f_taste_pref_bitterness = document.getElementById("f_taste_pref_bitterness");
+  const f_taste_pref_sweetness = document.getElementById("f_taste_pref_sweetness");
+  const f_taste_pref_acidity = document.getElementById("f_taste_pref_acidity");
+  const f_taste_pref_body = document.getElementById("f_taste_pref_body");
+  const f_account_created = document.getElementById("f_account_created");
+
+  const v_preferred_strength = document.getElementById("v_preferred_strength");
+  const v_taste_pref_bitterness = document.getElementById("v_taste_pref_bitterness");
+  const v_taste_pref_sweetness = document.getElementById("v_taste_pref_sweetness");
+  const v_taste_pref_acidity = document.getElementById("v_taste_pref_acidity");
+  const v_taste_pref_body = document.getElementById("v_taste_pref_body");
+
+  function bindSlider(sliderEl, valueEl, fmt = (x) => x){
+    const update = () => valueEl.textContent = fmt(sliderEl.value);
+    sliderEl.addEventListener("input", update);
+    update();
+  }
+
+  bindSlider(f_preferred_strength, v_preferred_strength, (x) => String(x));
+
+  const fmt2 = (x) => Number(x).toFixed(2);
+  bindSlider(f_taste_pref_bitterness, v_taste_pref_bitterness, fmt2);
+  bindSlider(f_taste_pref_sweetness, v_taste_pref_sweetness, fmt2);
+  bindSlider(f_taste_pref_acidity, v_taste_pref_acidity, fmt2);
+  bindSlider(f_taste_pref_body, v_taste_pref_body, fmt2);
+
+
+  function openModal(){ userModalBackdrop.style.display = "flex"; }
+  function closeModal(){ userModalBackdrop.style.display = "none"; }
+
+  function renderChecklist(container, items, selectedSet, disabled, filterText){
+    const q = (filterText || "").trim().toLowerCase();
+    const filtered = (items || []).filter(x => String(x).toLowerCase().includes(q));
+
+    container.innerHTML = filtered.map(x => {
+      const id = `${container.id}_${String(x)}`;
+      const checked = selectedSet.has(x) ? "checked" : "";
+      const dis = disabled ? "disabled" : "";
+      return `
+        <label class="row" for="${escapeHtml(id)}">
+          <input type="checkbox" id="${escapeHtml(id)}" data-value="${escapeHtml(x)}" ${checked} ${dis}/>
+          <span>${escapeHtml(x)}</span>
+        </label>
+      `;
+    }).join("");
+  }
+
+  function getCheckedValues(container){
+    return [...container.querySelectorAll('input[type="checkbox"]:checked')]
+      .map(el => el.getAttribute("data-value"))
+      .filter(Boolean);
+  }
+
+
+  function setSelectOptions(selectEl, values){
+    const current = new Set([...selectEl.options].map(o => o.value));
+    const html = (values || []).map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+    selectEl.innerHTML = html;
+  }
+
+  function getMultiSelectValues(selectEl){
+    return [...selectEl.selectedOptions].map(o => o.value);
+  }
+
+  const DIET_OPTIONS = ["sugar_free", "dairy_free"];
+  let selectedDiet = new Set();
+  let selectedEquipment = new Set();
+  let selectedProducts = new Set();
+  let checklistReadonly = false;
+
+  function refreshLists(){
+    renderChecklist(equipList, META.equipment, selectedEquipment, checklistReadonly, equipSearch.value);
+    renderChecklist(prodList, META.products, selectedProducts, checklistReadonly, prodSearch.value);
+    renderChecklist(dietList, DIET_OPTIONS, selectedDiet, checklistReadonly, ""); // no search needed
+  }
+
+
+  function setMultiSelectValues(selectEl, values){
+    const set = new Set(values || []);
+    [...selectEl.options].forEach(o => { o.selected = set.has(o.value); });
+  }
+
+  function setReadonlyMode(isReadonly){
+    checklistReadonly = isReadonly;
+
+    // disable normal inputs
+    const fields = [
+      f_user_id, f_username,
+      f_preferred_strength, f_preferred_portion_size,
+      f_taste_pref_bitterness, f_taste_pref_sweetness, f_taste_pref_acidity, f_taste_pref_body,
+    ];
+    fields.forEach(el => el.disabled = isReadonly);
+
+    // account_created always readonly
+    f_account_created.disabled = true;
+
+    // search inputs also disabled
+    equipSearch.disabled = false;  // ✅ allow search in profile view
+    prodSearch.disabled = false;   // ✅ allow search in profile view
+
+    f_preferred_strength.disabled = isReadonly;
+    f_taste_pref_bitterness.disabled = isReadonly;
+    f_taste_pref_sweetness.disabled = isReadonly;
+    f_taste_pref_acidity.disabled = isReadonly;
+    f_taste_pref_body.disabled = isReadonly;
+
+    userModalSubmit.style.display = isReadonly ? "none" : "inline-block";
+
+    refreshLists();
+  }
 
   function renderHistory(items) {
     if (!items.length) {
@@ -380,6 +783,138 @@
       historyEl.textContent = `Failed to load history: ${e.message}`;
       historyMetaEl.textContent = "";
     }
+  }
+
+  let META = { equipment: [], products: [] };
+
+  async function loadMetaOptions(){
+    try{
+      META = await fetchJson("/meta/options");
+    }catch(e){
+      // fallback: empty lists
+      META = { equipment: [], products: [] };
+    }
+    setSelectOptions(f_owned_equipment, META.equipment);
+    setSelectOptions(f_available_products, META.products);
+  }
+
+  async function openViewProfile(){
+    const userId = userSelect.value;
+    if (!userId) return;
+
+    userModalTitle.textContent = "View profile";
+    setReadonlyMode(true);
+
+    // ensure options are loaded so multi-select can show selections
+    if (!META?.equipment) await loadMetaOptions();
+
+    const u = await fetchJson(`/users/${encodeURIComponent(userId)}`);
+
+    document.getElementById("field_user_id").style.display = "";
+    document.getElementById("field_username").classList.remove("username-full");
+    f_user_id.value = u.user_id || "";
+    f_username.value = u.username || "";
+
+    selectedEquipment = new Set(u.owned_equipment || []);
+    selectedProducts = new Set(u.available_products || []);
+    selectedDiet = new Set(u.dietary_restrictions || []);
+    refreshLists();
+
+    f_preferred_strength.value = u.preferred_strength ?? 3;
+
+    f_taste_pref_bitterness.value = u.taste_pref_bitterness ?? 0.5;
+    f_taste_pref_sweetness.value = u.taste_pref_sweetness ?? 0.5;
+    f_taste_pref_acidity.value = u.taste_pref_acidity ?? 0.5;
+    f_taste_pref_body.value = u.taste_pref_body ?? 0.5;
+
+    // trigger label refresh (input event)
+    f_preferred_strength.dispatchEvent(new Event("input"));
+    f_taste_pref_bitterness.dispatchEvent(new Event("input"));
+    f_taste_pref_sweetness.dispatchEvent(new Event("input"));
+    f_taste_pref_acidity.dispatchEvent(new Event("input"));
+    f_taste_pref_body.dispatchEvent(new Event("input"));
+
+    f_preferred_portion_size.value = u.preferred_portion_size ?? "";
+
+    f_account_created.value = u.account_created ?? "";
+
+    openModal();
+  }
+
+  async function openCreateUser(){
+    userModalTitle.textContent = "Create new user";
+    setReadonlyMode(false);
+
+    if (!META?.equipment) await loadMetaOptions();
+
+    // reset form
+    document.getElementById("field_user_id").style.display = "none";
+    document.getElementById("field_username").classList.add("username-full");
+    f_user_id.value = "";
+    f_username.value = "";
+
+    selectedEquipment = new Set();
+    selectedProducts = new Set();
+    equipSearch.value = "";
+    prodSearch.value = "";
+    selectedDiet = new Set();
+    refreshLists();
+
+    f_preferred_strength.value = 3;
+    f_taste_pref_bitterness.value = 0.5;
+    f_taste_pref_sweetness.value = 0.5;
+    f_taste_pref_acidity.value = 0.5;
+    f_taste_pref_body.value = 0.5;
+
+    f_preferred_strength.dispatchEvent(new Event("input"));
+    f_taste_pref_bitterness.dispatchEvent(new Event("input"));
+    f_taste_pref_sweetness.dispatchEvent(new Event("input"));
+    f_taste_pref_acidity.dispatchEvent(new Event("input"));
+    f_taste_pref_body.dispatchEvent(new Event("input"));
+
+    f_preferred_portion_size.value = "";
+    f_account_created.value = "";
+
+    openModal();
+  }
+
+  async function postJson(path, body){
+    const url = (API_BASE || "") + path;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Accept":"application/json", "Content-Type":"application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok){
+      let detail = "";
+      try { detail = (await res.json())?.detail ?? ""; } catch {}
+      throw new Error(`HTTP ${res.status}${detail ? ": " + detail : ""}`);
+    }
+    return res.json().catch(() => ({}));
+  }
+
+  async function submitCreateUser(){
+    const payload = {
+      username: (f_username.value || "").trim() || null,
+      owned_equipment: getCheckedValues(equipList),
+      available_products: getCheckedValues(prodList),
+      dietary_restrictions: getCheckedValues(dietList),
+      taste_pref_bitterness: Number(f_taste_pref_bitterness.value),
+      taste_pref_sweetness: Number(f_taste_pref_sweetness.value),
+      taste_pref_acidity: Number(f_taste_pref_acidity.value),
+      taste_pref_body: Number(f_taste_pref_body.value),
+      preferred_strength: Number(f_preferred_strength.value),
+      preferred_portion_size: f_preferred_portion_size.value || "medium",
+    };
+
+    await postJson("/users", payload);
+
+    closeModal();
+    await loadUsers(); // refresh dropdown
+    userSelect.value = payload.user_id;
+    recBtn.disabled = !userSelect.value;
+    viewProfileBtn.disabled = !userSelect.value;
+    await loadHistory(payload.user_id);
   }
 
 
@@ -455,7 +990,7 @@
     return String(x ?? "").replaceAll("_", " ");
   }
 
-  function equipList(arr) {
+  function missEquipList(arr) {
     const xs = Array.isArray(arr) ? arr : [];
     return xs.map(humanEquip).join(", ");
   }
@@ -468,7 +1003,7 @@
     const show = (matched === false) || missingArr.length > 0;
     if (!show) return "";
 
-    const miss = equipList(missingArr);
+    const miss = missEquipList(missingArr);
 
     return `
       <div class="warn-badge">
@@ -628,6 +1163,7 @@ function renderCard(recipe) {
   // -------- Events --------
   userSelect.addEventListener("change", () => {
     recBtn.disabled = !userSelect.value;
+    viewProfileBtn.disabled = !userSelect.value;
     results.innerHTML = "";
     setStatus("");
     timingEl.textContent = "";
@@ -642,8 +1178,60 @@ function renderCard(recipe) {
 
   recBtn.addEventListener("click", recommend);
 
+  viewProfileBtn.addEventListener("click", () => {
+    openViewProfile().catch(e => setStatus(`Failed to load profile: ${e.message}`));
+  });
+
+  createUserBtn.addEventListener("click", () => {
+    openCreateUser().catch(e => setStatus(`Failed to open create form: ${e.message}`));
+  });
+
+  userModalClose.addEventListener("click", closeModal);
+  userModalCancel.addEventListener("click", closeModal);
+  userModalBackdrop.addEventListener("click", (e) => {
+    if (e.target === userModalBackdrop) closeModal();
+  });
+
+  userModalSubmit.addEventListener("click", () => {
+    submitCreateUser().catch(e => setStatus(`Failed to create user: ${e.message}`));
+  });
+
+  equipSearch.addEventListener("input", refreshLists);
+  prodSearch.addEventListener("input", refreshLists);
+
+  equipList.addEventListener("change", (e) => {
+    const el = e.target;
+    if (el?.type === "checkbox") {
+      const v = el.getAttribute("data-value");
+      if (!v) return;
+      el.checked ? selectedEquipment.add(v) : selectedEquipment.delete(v);
+    }
+  });
+
+  prodList.addEventListener("change", (e) => {
+    const el = e.target;
+    if (el?.type === "checkbox") {
+      const v = el.getAttribute("data-value");
+      if (!v) return;
+      el.checked ? selectedProducts.add(v) : selectedProducts.delete(v);
+    }
+  });
+
+  dietList.addEventListener("change", (e) => {
+    const el = e.target;
+    if (el?.type === "checkbox") {
+      const v = el.getAttribute("data-value");
+      if (!v) return;
+      el.checked ? selectedDiet.add(v) : selectedDiet.delete(v);
+    }
+  });
+
+  
+
   // boot
   loadUsers();
+  // boot
+  loadMetaOptions();
 </script>
 </body>
 </html>

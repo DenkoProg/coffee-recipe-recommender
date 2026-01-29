@@ -1,9 +1,11 @@
 from pathlib import Path
 import time
+import traceback
 import numpy as np
 import shap
 import pandas as pd
 import matplotlib.pyplot as plt
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse
@@ -12,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from coffee_recipe_recommender.inference.recommender import Recommender
 from coffee_recipe_recommender.training.loaders import load_interactions, load_recipes, load_users
 from src.client.services.recommend_service import RecommendOut, get_info, recommend
-from src.client.services.users_service import UserOut, list_users
+from src.client.services.users_service import UsersOut, list_users, MetaOut, get_meta_from_dataset, UserOut, get_user_from_dataset, UserCreate, create_user_in_dataset
 from src.client.services.history_retrieve import HistoryItem, get_user_history
 
 
@@ -20,12 +22,43 @@ app = FastAPI(title="Coffee Recommender API", version="1.0")
 app.mount("/images", StaticFiles(directory="data/images"), name="images")
 
 # ---------- Endpoints ----------
-@app.get("/users", response_model=list[UserOut])
+@app.get("/users", response_model=list[UsersOut])
 def get_users(limit: int = Query(200, ge=1, le=5000)):
     """
     Returns a list of users (id + username).
     """
     return list_users(limit=limit)
+
+@app.get("/users/{user_id}", response_model=UserOut)
+def get_user(user_id: str):
+    """
+    Returns a single user by user_id.
+    """
+    return get_user_from_dataset(user_id=user_id)
+
+@app.post("/users", response_model=UserOut)
+def create_user(payload: UserCreate) -> Any:
+    DIET_ALLOWED = {"sugar_free", "dairy_free"}
+    PORTION_ALLOWED = {"small", "medium", "large"}
+    # validate enumerations
+    if payload.preferred_portion_size not in PORTION_ALLOWED:
+        raise HTTPException(status_code=400, detail=f"preferred_portion_size must be one of {sorted(PORTION_ALLOWED)}")
+
+    bad = [x for x in payload.dietary_restrictions if x not in DIET_ALLOWED]
+    if bad:
+        raise HTTPException(status_code=400, detail=f"Invalid dietary_restrictions: {bad}. Allowed: {sorted(DIET_ALLOWED)}")
+
+    return create_user_in_dataset(payload)
+
+
+
+@app.get("/meta/options", response_model=MetaOut)
+def get_meta():
+    """
+    Returns a list of users (id + username).
+    """
+    print("Calling get_meta_from_dataset")
+    return get_meta_from_dataset()
 
 @app.get("/history/{user_id}", response_model=list[HistoryItem])
 def get_history(user_id: str, limit: int = Query(50, ge=1, le=500)):
@@ -207,6 +240,7 @@ def get_recommendations(user_id: str, n: int = Query(5, ge=1, le=50)):
         # ranker_model_path="runs/ranking/improved-features/ranker.pkl",
         ranker_model_path="runs/ranking/very-advanced-features/ranker.pkl",
         vector_store_path="data/chroma",
+        cold_start_path="runs/retrieval/cold_encoder_baseline/cold_encoder.pt",
         # feature_store_path="data/legacy_feature_store.db",
         feature_store_path="data/feature_store.db",
         users_df=users_df,
@@ -256,6 +290,7 @@ def get_recommendations(user_id: str, n: int = Query(5, ge=1, le=50)):
     except KeyError:
         raise HTTPException(status_code=404, detail="user_id not found")
     except ValueError as e:
+        traceback.print_exc()
         raise HTTPException(status_code=400, detail=str(e))
 
     return RecommendOut(user_id=user_id, recommendations=recs_info, took_ms=took_ms)
